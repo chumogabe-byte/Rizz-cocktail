@@ -5,6 +5,7 @@ import { actions, run, useStore } from '../store/store';
 import { Icon } from '../components/Icon';
 import { Chip, TopBar } from '../components/Layout';
 import { money, seatLabel } from '../config';
+import { MpesaPay } from '../components/MpesaPay';
 
 const STEPS: { s: OrderStatus; label: string; emoji: string }[] = [
   { s: 'new', label: 'Received', emoji: '🧾' },
@@ -63,7 +64,16 @@ export function OrderTracking({ nav, id }: { nav: Nav; id: string }) {
         </div>
       </div>
 
-      {order.status === 'new' && (
+      {order.status !== 'cancelled' && order.payment && (order.payment.method === 'mpesa' || order.payment.status === 'paid'
+        ? <MpesaPay kind="order" refId={order.id} amount={order.total} payment={order.payment} title="Pay for this order" />
+        : (
+          <details className="card">
+            <summary className="small">💵 Paying at the bar — or tap to <b>pay now with M-Pesa</b></summary>
+            <div style={{ marginTop: 12 }}><MpesaPay kind="order" refId={order.id} amount={order.total} payment={order.payment} /></div>
+          </details>
+        ))}
+
+      {order.status === 'new' && !['paid', 'pending'].includes(order.payment?.status ?? '') && (
         <button className="btn btn-ghost btn-block danger" onClick={() => run(actions.setOrderStatus(order.id, 'cancelled'))}>Cancel order</button>
       )}
 

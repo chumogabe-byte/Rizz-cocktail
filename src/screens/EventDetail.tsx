@@ -5,12 +5,16 @@ import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Layout';
 import { money } from '../config';
 import { eventBg, fmtWhen } from './Events';
+import { isValidKePhone } from '../components/MpesaPay';
 
 export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
   const e = useStore((s) => s.events.find((x) => x.id === id));
   const [qty, setQty] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const user = useStore((s) => s.user);
+  const [payNow, setPayNow] = useState(true);
+  const [phone, setPhone] = useState(user?.phone || '');
   if (!e) return <div className="screen"><p className="muted pad">Loading event…</p></div>;
 
   const total = e.ticketTypes.reduce((s, t) => s + t.price * (qty[t.id] || 0), 0);
@@ -18,9 +22,11 @@ export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
   const past = (e.endsAt || e.startsAt) < Date.now();
 
   const buy = async () => {
+    if (total > 0 && payNow && !isValidKePhone(phone)) return setErr('Enter your M-Pesa number, e.g. 0712 345 678.');
     setBusy(true); setErr('');
     try {
-      await actions.buyTickets(e.id, Object.entries(qty).filter(([, q]) => q > 0).map(([typeId, q]) => ({ typeId, qty: q })));
+      const t = await actions.buyTickets(e.id, Object.entries(qty).filter(([, q]) => q > 0).map(([typeId, q]) => ({ typeId, qty: q })));
+      if (total > 0 && payNow) await actions.payMpesa('ticket', t.id, phone).catch(() => {});
       nav.go({ name: 'tickets' });
     } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
   };
@@ -61,13 +67,23 @@ export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
             );
           })}
         </div>
-        <p className="tiny muted">{total > 0 ? 'Your tickets are reserved instantly. Pay at the door or the bar — show the QR codes in My tickets. Paid tickets earn Rizz Rewards points.' : 'Free RSVP — show your QR code at the door to skip the queue.'}</p>
+        {total > 0 && (
+          <div className="card stack">
+            <h3>Payment</h3>
+            <div className="seg">
+              <button className={payNow ? 'on' : ''} onClick={() => setPayNow(true)}>📱 Pay now with M-Pesa</button>
+              <button className={!payNow ? 'on' : ''} onClick={() => setPayNow(false)}>🚪 Pay at the door</button>
+            </div>
+            {payNow && <label className="field"><span>M-Pesa number</span><input inputMode="tel" value={phone} onChange={(x) => { setPhone(x.target.value); setErr(''); }} placeholder="0712 345 678" /></label>}
+          </div>
+        )}
+        <p className="tiny muted">{total > 0 ? (payNow ? "Your seats are held while you approve the M-Pesa prompt. Your QR tickets appear in My tickets — they're marked Paid the moment M-Pesa confirms." : 'Your tickets are reserved instantly. Pay at the door or bar — show the QR codes in My tickets.') + ' Paid tickets earn Rizz Rewards points.' : 'Free RSVP — show your QR code at the door to skip the queue.'}</p>
         {err && <p className="error">{err}</p>}
       </div>
       {!past && (
         <div className="sticky-cta">
           <button className="btn btn-lime grow" disabled={!count || busy} onClick={buy}>
-            {busy ? 'Reserving…' : !count ? 'Choose tickets' : total > 0 ? `Reserve ${count} ticket${count > 1 ? 's' : ''} · ${money(total)}` : `Get ${count} free ticket${count > 1 ? 's' : ''}`}
+            {busy ? 'Reserving…' : !count ? 'Choose tickets' : total > 0 ? `${payNow ? 'Pay' : 'Reserve'} ${count} ticket${count > 1 ? 's' : ''} · ${money(total)}` : `Get ${count} free ticket${count > 1 ? 's' : ''}`}
           </button>
         </div>
       )}

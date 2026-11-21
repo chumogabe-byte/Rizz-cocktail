@@ -6,8 +6,9 @@ import { actions, run, useStore } from '../store/store';
 import { Empty, TopBar } from '../components/Layout';
 import { money } from '../config';
 import { fmtWhen } from './Events';
+import { MpesaPay } from '../components/MpesaPay';
 
-const STATUS: Record<string, string> = { reserved: 'Pay at door', paid: 'Paid', 'checked-in': 'Checked in', cancelled: 'Cancelled' };
+const STATUS: Record<string, string> = { reserved: 'Unpaid', paid: 'Paid', 'checked-in': 'Checked in', cancelled: 'Cancelled' };
 
 export function MyTickets({ nav }: { nav: Nav }) {
   const tickets = useStore((s) => s.tickets);
@@ -49,7 +50,10 @@ function TicketCard({ t, compact }: { t: TicketOrder; compact?: boolean }) {
           ))}
         </div>
       )}
-      {t.status === 'reserved' && !compact && (
+      {!compact && t.total > 0 && t.status !== 'cancelled' && (t.payment?.status !== 'paid' || t.payment.method === 'mpesa') && (
+        <MpesaPay kind="ticket" refId={t.id} amount={t.total} payment={t.payment} title="Pay for these tickets" />
+      )}
+      {t.status === 'reserved' && !compact && t.payment?.status !== 'pending' && (
         <button className="link small danger" onClick={() => { if (confirm('Cancel these tickets?')) run(actions.setTicketStatus(t.id, 'cancelled')); }}>Cancel reservation</button>
       )}
     </div>

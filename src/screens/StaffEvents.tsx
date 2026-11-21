@@ -7,6 +7,7 @@ import { AD_THEMES } from '../components/Promo';
 import { SPACES } from '../data/spaces';
 import { money } from '../config';
 import { eventBg, fmtWhen } from './Events';
+import { PayBadge } from '../components/MpesaPay';
 
 const toLocal = (t?: number) => {
   if (!t) return '';
@@ -96,7 +97,7 @@ export function EventsPanel() {
                   <div key={t.id} className="tr">
                     <span><b>{t.customer}</b><br /><span className="tiny muted">{t.phone || '—'} · {t.code}</span></span>
                     <span className="small">{t.lines.map((l) => `${l.qty}× ${l.name}`).join(', ')}<br /><span className="tiny muted">{t.units.map((u) => u.code + (u.checkedInAt ? '✓' : '')).join(' ')}</span></span>
-                    <span>{t.total ? money(t.total) : 'Free'}</span>
+                    <span>{t.total ? money(t.total) : 'Free'}<br /><PayBadge payment={t.payment} total={t.total} /></span>
                     <span className={`status status-${t.status === 'reserved' ? 'pending' : t.status === 'paid' ? 'confirmed' : t.status}`}>{t.status === 'reserved' ? 'Unpaid' : t.status}</span>
                     <span className="row-gap wrap">
                       {t.status === 'reserved' && <button className="btn btn-lime sm" onClick={() => run(actions.setTicketStatus(t.id, 'paid'))}>Mark paid</button>}

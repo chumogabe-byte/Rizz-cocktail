@@ -10,6 +10,7 @@ export function Rewards({ nav }: { nav: Nav }) {
   const vouchers = useStore((s) => s.vouchers);
   const pts = me?.points ?? 0;
   const t = settings.rewardThreshold || 100;
+  const perPoint = money(Math.round(1 / (settings.pointsPerUnit || 0.01)));
   const ready = vouchers.filter((v) => v.active && v.redemptions.length === 0 && (!v.expiresAt || v.expiresAt > Date.now()));
   const used = vouchers.filter((v) => v.redemptions.length > 0);
 
@@ -40,7 +41,7 @@ export function Rewards({ nav }: { nav: Nav }) {
       <h3>Your codes</h3>
       {applied && <p className="small">Applied to your next order: <span className="code-chip">{applied}</span> <button className="link small" onClick={() => actions.applyCode(null)}>Remove</button></p>}
       {ready.length === 0 ? (
-        <Empty emoji="🎟️" title="No codes yet" text={`Order through the app — every ${money(1)} spent earns ${settings.pointsPerUnit} pt. Hit ${t} pts and a reward code lands here automatically.`} />
+        <Empty emoji="🎟️" title="No codes yet" text={`Order through the app — every ${perPoint} spent earns 1 pt. Hit ${t} pts and a reward code lands here automatically.`} />
       ) : (
         <div className="list">
           {ready.map((v) => (
@@ -61,7 +62,7 @@ export function Rewards({ nav }: { nav: Nav }) {
       <div className="card stack">
         <h3>How it works</h3>
         <p className="small muted">1. Order drinks & food in the app — we track every purchase to your account.</p>
-        <p className="small muted">2. Earn {settings.pointsPerUnit} point per {money(1)} once your order is served.</p>
+        <p className="small muted">2. Earn 1 point for every {perPoint} spent on served orders and paid tickets.</p>
         <p className="small muted">3. Every {t} points unlocks a {money(settings.rewardValue)} code, ready to use on your next order.</p>
         <p className="small muted">4. Watch the offers on the home screen and the bar's TVs for promo codes like <b>WELCOME10</b>.</p>
       </div>

@@ -61,6 +61,33 @@ Server settings (environment variables):
 | `STAFF_PIN` | `1234` | Staff console PIN. **Change this.** |
 | `DATA_FILE` | `server/data/db.json` | Where data is saved. Photos go in an `uploads/` folder next to it. |
 
+## M-Pesa payments
+
+Guests can pay for **orders** and **event tickets** with **M-Pesa Express (STK Push)**. They choose M-Pesa at checkout, confirm their Safaricom number, and approve the PIN prompt on their phone. The order or ticket switches to **Paid** live, with the M-Pesa receipt number, on the guest's phone and the staff console. Guests can also choose **Pay at the bar / door**, and staff mark those paid (cash or card).
+
+- **Checkout and tickets**: an M-Pesa / Pay at bar choice. The prompt is sent the moment the order or reservation is made.
+- **Retries**: failed or cancelled payments show a clear reason (wrong PIN, insufficient balance, cancelled, phone unreachable) and can be retried, including with a different number.
+- **Pay later**: unpaid orders and tickets can be paid with M-Pesa at any time from the order page or My tickets.
+- **Staff**: every order and ticket shows its payment status (*M-Pesa ✓ receipt*, *prompt sent*, *failed*, *pay at bar*), with **Mark paid (cash/card)** for the rest. The Overview shows M-Pesa collected today and unpaid orders. The header shows the M-Pesa mode (TEST MODE / Sandbox / Live).
+- **Safety**: amounts always come from the server (whole shillings). Safaricom's confirmations go to a secret URL and must match the expected amount. Guests can't cancel an order that's paid or mid-payment. Paid tickets earn reward points.
+
+### Modes
+| `MPESA_ENV` | What happens |
+|---|---|
+| `mock` *(default)* | Test mode with no Safaricom account. Payments succeed after about 4 seconds; numbers ending in **000** simulate a failed payment. |
+| `sandbox` | Real Daraja sandbox calls using your test app's keys. |
+| `production` | Live payments to your Paybill or Till. |
+
+### Going live
+1. Create an app at **developer.safaricom.co.ke** with **M-Pesa Express**, and get your consumer key and secret.
+2. Apply to Safaricom for **Lipa na M-Pesa Online** on your Paybill or Till to get the **passkey** (sandbox uses shortcode `174379` and the passkey shown on the Daraja simulator page).
+3. Host the server on **HTTPS** and set the variables in `.env.example`: `MPESA_ENV`, `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL` (your server's public address), plus `MPESA_TRANSACTION_TYPE=CustomerBuyGoodsOnline` and `MPESA_PARTY_B=<till>` if you use a Till.
+4. Restart the server. The staff header should now say **Sandbox** or **Live**.
+
+If Safaricom's confirmation can't reach the server (for example, a server on the bar's local Wi-Fi), the app falls back to asking Daraja for the payment status, so payments still complete. Only the receipt number is missing in that case.
+
+> Prices are in **Kenyan shillings** (set in `src/config.ts`). The starting menu, events and minimum spends were set in KSh. Adjust any price in the staff console (Menu & Offers / Events).
+
 ## Backend
 
 `server/index.js` is a small Express server:

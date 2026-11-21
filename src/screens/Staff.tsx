@@ -7,6 +7,7 @@ import { BAR, money, seatLabel } from '../config';
 import { bookingStatusText, fmtDate } from './BookingDetail';
 import { AdsPanel, CustomersPanel, PromosPanel, SocialPanel } from './StaffMarketing';
 import { MenuPanel } from './StaffMenu';
+import { PayBadge } from '../components/MpesaPay';
 import { EventsPanel } from './StaffEvents';
 
 type Tab = 'orders' | 'bookings' | 'events' | 'menu' | 'promos' | 'ads' | 'social' | 'customers' | 'overview';
@@ -45,6 +46,7 @@ export function Staff({ nav }: { nav: Nav }) {
   const bookings = useStore((s) => s.bookings);
   const [tab, setTab] = useState<Tab>('orders');
   const posts = useStore((s) => s.posts);
+  const mpesa = useStore((s) => s.mpesa);
   const [sound, setSound] = useState(true);
   const now = useNow();
 
@@ -65,6 +67,7 @@ export function Staff({ nav }: { nav: Nav }) {
       <header className="staff-head">
         <div className="brand-mark sm">RIZZ<span>.</span> <small>Staff</small></div>
         <div className="row-gap">
+          {mpesa && <span className={`pay-badge ${mpesa.mode === 'production' ? 'paid' : 'pending'}`} title="M-Pesa mode">M-Pesa: {mpesa.mode === 'mock' ? 'TEST MODE' : mpesa.mode === 'sandbox' ? 'Sandbox' : 'Live'}</span>}
           <button className={`icon-btn ${sound ? '' : 'muted'}`} onClick={() => setSound(!sound)} title="Sound alerts"><Icon name="bell" /></button>
           <button className="btn btn-ghost sm" onClick={() => { actions.lockStaff(); nav.go({ name: 'profile' }); }}>Exit</button>
         </div>
@@ -120,6 +123,8 @@ export function Staff({ nav }: { nav: Nav }) {
           <div className="kpi"><small>Revenue today</small><strong>{money(revenue)}</strong></div>
           <div className="kpi"><small>Orders today</small><strong>{todayOrders.length}</strong></div>
           <div className="kpi"><small>Avg. order</small><strong>{money(todayOrders.length ? revenue / todayOrders.length : 0)}</strong></div>
+          <div className="kpi"><small>M-Pesa collected today</small><strong>{money(todayOrders.filter((o) => o.payment?.method === 'mpesa' && o.payment.status === 'paid').reduce((s, o) => s + (o.payment?.amount ?? o.total), 0))}</strong></div>
+          <div className="kpi"><small>Unpaid orders today</small><strong>{todayOrders.filter((o) => o.payment && o.payment.status !== 'paid').length}</strong></div>
           <div className="kpi"><small>Discounts given today</small><strong>{money(todayOrders.reduce((s, o) => s + (o.discount ?? 0), 0))}</strong></div>
           <div className="kpi"><small>Promo orders today</small><strong>{todayOrders.filter((o) => o.voucherCode).length}</strong></div>
           <div className="kpi"><small>Moments posted</small><strong>{posts.length}</strong></div>
@@ -170,6 +175,8 @@ function OrderTicket({ o, now, cta, onNext }: { o: Order; now: number; cta?: str
       </ul>
       {o.notes && <p className="tiny note">📝 {o.notes}</p>}
       {o.voucherCode && <p className="tiny">🎟️ {o.voucherCode} −{money(o.discount ?? 0)}</p>}
+      <div className="row-gap wrap"><PayBadge payment={o.payment} total={o.total} />
+        {o.payment && o.payment.status !== 'paid' && o.payment.status !== 'pending' && <button className="link tiny" onClick={() => run(actions.markOrderPaid(o.id, true))}>Mark paid (cash/card)</button>}</div>
       <div className="ticket-card-foot">
         <span className="small">{money(o.total)}</span>
         <div className="row-gap">

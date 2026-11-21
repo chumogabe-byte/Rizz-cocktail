@@ -3,7 +3,7 @@
   "id": "rizz-royale",
   "name": "Rizz Royale",
   "category": "cocktails",
-  "price": 16,
+  "price": 1600,
   "popular": true,
   "abv": "18%",
   "description": "Butterfly-pea gin that blushes violet, elderflower, lemon, topped with prosecco.",
@@ -26,11 +26,11 @@
      },
      {
       "name": "Premium",
-      "price": 4
+      "price": 400
      },
      {
       "name": "Top shelf",
-      "price": 8
+      "price": 800
      }
     ]
    }
@@ -41,7 +41,7 @@
   "id": "smooth-operator",
   "name": "Smooth Operator",
   "category": "cocktails",
-  "price": 17,
+  "price": 1700,
   "popular": true,
   "abv": "24%",
   "description": "Brown-butter bourbon, maple, smoked cherry bitters over a clear rock.",
@@ -64,11 +64,11 @@
      },
      {
       "name": "Premium",
-      "price": 4
+      "price": 400
      },
      {
       "name": "Top shelf",
-      "price": 8
+      "price": 800
      }
     ]
    }
@@ -79,7 +79,7 @@
   "id": "pickup-line",
   "name": "Pick-Up Line",
   "category": "cocktails",
-  "price": 15,
+  "price": 1500,
   "abv": "14%",
   "description": "Tequila, passion fruit, lime, chilli agave, tajín rim.",
   "emoji": "🍹",
@@ -101,11 +101,11 @@
      },
      {
       "name": "Premium",
-      "price": 4
+      "price": 400
      },
      {
       "name": "Top shelf",
-      "price": 8
+      "price": 800
      }
     ]
    }
@@ -116,7 +116,7 @@
   "id": "lime-light",
   "name": "Lime Light",
   "category": "cocktails",
-  "price": 15,
+  "price": 1500,
   "abv": "12%",
   "description": "Vodka, green apple, basil, lime cordial, soda.",
   "emoji": "🍏",
@@ -138,11 +138,11 @@
      },
      {
       "name": "Premium",
-      "price": 4
+      "price": 400
      },
      {
       "name": "Top shelf",
-      "price": 8
+      "price": 800
      }
     ]
    }
@@ -153,7 +153,7 @@
   "id": "espresso-martini",
   "name": "Espresso Martini",
   "category": "cocktails",
-  "price": 15,
+  "price": 1500,
   "popular": true,
   "abv": "18%",
   "description": "Vodka, fresh espresso, coffee liqueur, three-bean garnish.",
@@ -172,11 +172,11 @@
      },
      {
       "name": "Premium",
-      "price": 4
+      "price": 400
      },
      {
       "name": "Top shelf",
-      "price": 8
+      "price": 800
      }
     ]
    }
@@ -187,7 +187,7 @@
   "id": "negroni",
   "name": "Negroni",
   "category": "cocktails",
-  "price": 14,
+  "price": 1400,
   "abv": "24%",
   "description": "Gin, Campari, sweet vermouth. Equal parts, perfectly balanced.",
   "emoji": "🍷",
@@ -205,11 +205,11 @@
      },
      {
       "name": "Premium",
-      "price": 4
+      "price": 400
      },
      {
       "name": "Top shelf",
-      "price": 8
+      "price": 800
      }
     ]
    }
@@ -220,7 +220,7 @@
   "id": "old-fashioned",
   "name": "Old Fashioned",
   "category": "cocktails",
-  "price": 14,
+  "price": 1400,
   "abv": "30%",
   "description": "Rye, demerara, Angostura & orange bitters.",
   "emoji": "🥃",
@@ -238,11 +238,11 @@
      },
      {
       "name": "Premium",
-      "price": 4
+      "price": 400
      },
      {
       "name": "Top shelf",
-      "price": 8
+      "price": 800
      }
     ]
    }
@@ -253,7 +253,7 @@
   "id": "mojito",
   "name": "Mojito",
   "category": "cocktails",
-  "price": 12,
+  "price": 1200,
   "abv": "10%",
   "description": "White rum, mint, lime, sugar, soda.",
   "emoji": "🌿",
@@ -271,11 +271,11 @@
      },
      {
       "name": "Premium",
-      "price": 4
+      "price": 400
      },
      {
       "name": "Top shelf",
-      "price": 8
+      "price": 800
      }
     ]
    }
@@ -286,7 +286,7 @@
   "id": "margarita",
   "name": "Margarita",
   "category": "cocktails",
-  "price": 13,
+  "price": 1300,
   "abv": "16%",
   "description": "Blanco tequila, triple sec, lime, half salt rim.",
   "emoji": "🍋",
@@ -304,11 +304,11 @@
      },
      {
       "name": "Premium",
-      "price": 4
+      "price": 400
      },
      {
       "name": "Top shelf",
-      "price": 8
+      "price": 800
      }
     ]
    }
@@ -319,7 +319,7 @@
   "id": "smirnoff",
   "name": "Smirnoff No. 21",
   "category": "vodka",
-  "price": 6,
+  "price": 600,
   "description": "Clean, smooth house pour.",
   "emoji": "🧊",
   "gradient": [
@@ -340,7 +340,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 55
+      "price": 5500
      }
     ]
    },
@@ -357,7 +357,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -368,7 +368,7 @@
   "id": "absolut",
   "name": "Absolut",
   "category": "vodka",
-  "price": 7,
+  "price": 700,
   "description": "Swedish winter wheat, rich and full.",
   "emoji": "🧊",
   "gradient": [
@@ -389,7 +389,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 65
+      "price": 6500
      }
     ]
    },
@@ -406,7 +406,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -417,7 +417,7 @@
   "id": "ketel-one",
   "name": "Ketel One",
   "category": "vodka",
-  "price": 8,
+  "price": 800,
   "description": "Crisp and lively with a citrus finish.",
   "emoji": "🧊",
   "gradient": [
@@ -438,7 +438,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 75
+      "price": 7500
      }
     ]
    },
@@ -455,7 +455,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -466,7 +466,7 @@
   "id": "grey-goose",
   "name": "Grey Goose",
   "category": "vodka",
-  "price": 12,
+  "price": 1200,
   "description": "French soft-winter wheat, silky smooth.",
   "emoji": "🪿",
   "gradient": [
@@ -487,7 +487,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 120
+      "price": 12000
      }
     ]
    },
@@ -504,7 +504,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -516,7 +516,7 @@
   "id": "belvedere",
   "name": "Belvedere",
   "category": "vodka",
-  "price": 12,
+  "price": 1200,
   "description": "Polish rye, velvety with vanilla notes.",
   "emoji": "🧊",
   "gradient": [
@@ -537,7 +537,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 125
+      "price": 12500
      }
     ]
    },
@@ -554,7 +554,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -565,7 +565,7 @@
   "id": "ciroc",
   "name": "Cîroc",
   "category": "vodka",
-  "price": 11,
+  "price": 1100,
   "description": "Distilled from grapes — fresh and fruity.",
   "emoji": "🍇",
   "gradient": [
@@ -586,7 +586,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 110
+      "price": 11000
      }
     ]
    },
@@ -603,7 +603,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -614,7 +614,7 @@
   "id": "gordons",
   "name": "Gordon's",
   "category": "gin",
-  "price": 6,
+  "price": 600,
   "description": "The classic London dry, juniper-forward.",
   "emoji": "🌿",
   "gradient": [
@@ -635,7 +635,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 50
+      "price": 5000
      }
     ]
    },
@@ -652,7 +652,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -663,7 +663,7 @@
   "id": "beefeater",
   "name": "Beefeater",
   "category": "gin",
-  "price": 7,
+  "price": 700,
   "description": "Bold juniper, bright citrus peel.",
   "emoji": "🌿",
   "gradient": [
@@ -684,7 +684,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 60
+      "price": 6000
      }
     ]
    },
@@ -701,7 +701,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -712,7 +712,7 @@
   "id": "tanqueray",
   "name": "Tanqueray",
   "category": "gin",
-  "price": 8,
+  "price": 800,
   "description": "Four botanicals, crisp and dry.",
   "emoji": "🌿",
   "gradient": [
@@ -733,7 +733,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 70
+      "price": 7000
      }
     ]
    },
@@ -750,7 +750,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -761,7 +761,7 @@
   "id": "bombay",
   "name": "Bombay Sapphire",
   "category": "gin",
-  "price": 8,
+  "price": 800,
   "description": "Ten vapour-infused botanicals.",
   "emoji": "💎",
   "gradient": [
@@ -782,7 +782,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 72
+      "price": 7200
      }
     ]
    },
@@ -799,7 +799,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -811,7 +811,7 @@
   "id": "hendricks",
   "name": "Hendrick's",
   "category": "gin",
-  "price": 10,
+  "price": 1000,
   "description": "Cucumber and rose — served with a cucumber slice.",
   "emoji": "🥒",
   "gradient": [
@@ -832,7 +832,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 95
+      "price": 9500
      }
     ]
    },
@@ -849,7 +849,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -860,7 +860,7 @@
   "id": "malfy-rosa",
   "name": "Malfy Rosa",
   "category": "gin",
-  "price": 9,
+  "price": 900,
   "description": "Sicilian pink grapefruit gin.",
   "emoji": "🍊",
   "gradient": [
@@ -881,7 +881,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 85
+      "price": 8500
      }
     ]
    },
@@ -898,7 +898,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -909,7 +909,7 @@
   "id": "jameson",
   "name": "Jameson",
   "category": "whiskey",
-  "price": 7,
+  "price": 700,
   "description": "Irish, triple-distilled, smooth & sweet.",
   "emoji": "🥃",
   "gradient": [
@@ -930,7 +930,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 65
+      "price": 6500
      }
     ]
    },
@@ -947,7 +947,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -958,7 +958,7 @@
   "id": "jack-daniels",
   "name": "Jack Daniel's",
   "category": "whiskey",
-  "price": 8,
+  "price": 800,
   "description": "Tennessee charcoal-mellowed classic.",
   "emoji": "🥃",
   "gradient": [
@@ -979,7 +979,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 70
+      "price": 7000
      }
     ]
    },
@@ -996,7 +996,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1008,7 +1008,7 @@
   "id": "jw-black",
   "name": "Johnnie Walker Black",
   "category": "whiskey",
-  "price": 9,
+  "price": 900,
   "description": "12-year blended Scotch, smoky and rich.",
   "emoji": "🥃",
   "gradient": [
@@ -1029,7 +1029,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 85
+      "price": 8500
      }
     ]
    },
@@ -1046,7 +1046,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1057,7 +1057,7 @@
   "id": "glenfiddich-12",
   "name": "Glenfiddich 12",
   "category": "whiskey",
-  "price": 11,
+  "price": 1100,
   "description": "Speyside single malt, pear and oak.",
   "emoji": "🦌",
   "gradient": [
@@ -1078,7 +1078,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 110
+      "price": 11000
      }
     ]
    },
@@ -1095,7 +1095,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1106,7 +1106,7 @@
   "id": "macallan-12",
   "name": "Macallan 12 Double Cask",
   "category": "whiskey",
-  "price": 16,
+  "price": 1600,
   "description": "Sherry-seasoned oak, dried fruit, spice.",
   "emoji": "🥃",
   "gradient": [
@@ -1127,7 +1127,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 165
+      "price": 16500
      }
     ]
    },
@@ -1144,7 +1144,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1155,7 +1155,7 @@
   "id": "makers-mark",
   "name": "Maker's Mark",
   "category": "whiskey",
-  "price": 9,
+  "price": 900,
   "description": "Wheated bourbon, caramel and vanilla.",
   "emoji": "🔴",
   "gradient": [
@@ -1176,7 +1176,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 85
+      "price": 8500
      }
     ]
    },
@@ -1193,7 +1193,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1204,7 +1204,7 @@
   "id": "jw-blue",
   "name": "Johnnie Walker Blue Label",
   "category": "whiskey",
-  "price": 35,
+  "price": 3500,
   "description": "Exceptionally rare blend. For the big night.",
   "emoji": "💙",
   "gradient": [
@@ -1225,7 +1225,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 320
+      "price": 32000
      }
     ]
    },
@@ -1242,7 +1242,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1253,7 +1253,7 @@
   "id": "bacardi",
   "name": "Bacardí Carta Blanca",
   "category": "rum",
-  "price": 6,
+  "price": 600,
   "description": "Light, crisp white rum.",
   "emoji": "🦇",
   "gradient": [
@@ -1274,7 +1274,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 50
+      "price": 5000
      }
     ]
    },
@@ -1291,7 +1291,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1302,7 +1302,7 @@
   "id": "captain-morgan",
   "name": "Captain Morgan Spiced",
   "category": "rum",
-  "price": 6,
+  "price": 600,
   "description": "Vanilla and warm spice.",
   "emoji": "🏴‍☠️",
   "gradient": [
@@ -1323,7 +1323,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 55
+      "price": 5500
      }
     ]
    },
@@ -1340,7 +1340,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1351,7 +1351,7 @@
   "id": "kraken",
   "name": "Kraken Black Spiced",
   "category": "rum",
-  "price": 8,
+  "price": 800,
   "description": "Dark, rich, clove & cinnamon.",
   "emoji": "🐙",
   "gradient": [
@@ -1372,7 +1372,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 70
+      "price": 7000
      }
     ]
    },
@@ -1389,7 +1389,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1400,7 +1400,7 @@
   "id": "diplomatico",
   "name": "Diplomático Reserva",
   "category": "rum",
-  "price": 11,
+  "price": 1100,
   "description": "Venezuelan sipping rum — toffee, cocoa.",
   "emoji": "🥃",
   "gradient": [
@@ -1421,7 +1421,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 105
+      "price": 10500
      }
     ]
    },
@@ -1438,7 +1438,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1450,7 +1450,7 @@
   "id": "malibu",
   "name": "Malibu",
   "category": "rum",
-  "price": 6,
+  "price": 600,
   "description": "Coconut rum, best with pineapple.",
   "emoji": "🥥",
   "gradient": [
@@ -1471,7 +1471,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 45
+      "price": 4500
      }
     ]
    },
@@ -1488,7 +1488,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1499,7 +1499,7 @@
   "id": "jose-cuervo",
   "name": "José Cuervo Especial",
   "category": "tequila",
-  "price": 6,
+  "price": 600,
   "description": "Gold tequila, a party classic.",
   "emoji": "🌵",
   "gradient": [
@@ -1520,7 +1520,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 55
+      "price": 5500
      }
     ]
    },
@@ -1537,7 +1537,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1548,7 +1548,7 @@
   "id": "patron-silver",
   "name": "Patrón Silver",
   "category": "tequila",
-  "price": 11,
+  "price": 1100,
   "description": "100% agave, citrus and pepper.",
   "emoji": "🐝",
   "gradient": [
@@ -1569,7 +1569,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 110
+      "price": 11000
      }
     ]
    },
@@ -1586,7 +1586,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1598,7 +1598,7 @@
   "id": "don-julio-1942",
   "name": "Don Julio 1942",
   "category": "tequila",
-  "price": 25,
+  "price": 2500,
   "description": "Añejo — caramel, chocolate, warm oak.",
   "emoji": "🌵",
   "gradient": [
@@ -1619,7 +1619,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 260
+      "price": 26000
      }
     ]
    },
@@ -1636,7 +1636,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1647,7 +1647,7 @@
   "id": "casamigos",
   "name": "Casamigos Reposado",
   "category": "tequila",
-  "price": 13,
+  "price": 1300,
   "description": "Soft caramel and cocoa notes.",
   "emoji": "🌵",
   "gradient": [
@@ -1668,7 +1668,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 130
+      "price": 13000
      }
     ]
    },
@@ -1685,7 +1685,7 @@
      },
      {
       "name": "With mixer",
-      "price": 2
+      "price": 200
      }
     ]
    }
@@ -1696,7 +1696,7 @@
   "id": "house-red",
   "name": "House Red — Merlot",
   "category": "wine",
-  "price": 8,
+  "price": 800,
   "description": "Soft plum and cherry.",
   "emoji": "🍷",
   "gradient": [
@@ -1713,7 +1713,7 @@
      },
      {
       "name": "Bottle",
-      "price": 22
+      "price": 2200
      }
     ]
    }
@@ -1724,7 +1724,7 @@
   "id": "malbec",
   "name": "Malbec, Mendoza",
   "category": "wine",
-  "price": 11,
+  "price": 1100,
   "popular": true,
   "description": "Blackberry, violet, smooth tannins.",
   "emoji": "🍷",
@@ -1742,7 +1742,7 @@
      },
      {
       "name": "Bottle",
-      "price": 32
+      "price": 3200
      }
     ]
    }
@@ -1753,7 +1753,7 @@
   "id": "cab-sauv",
   "name": "Cabernet Sauvignon",
   "category": "wine",
-  "price": 12,
+  "price": 1200,
   "description": "Full-bodied, blackcurrant and cedar.",
   "emoji": "🍷",
   "gradient": [
@@ -1770,7 +1770,7 @@
      },
      {
       "name": "Bottle",
-      "price": 36
+      "price": 3600
      }
     ]
    }
@@ -1781,7 +1781,7 @@
   "id": "house-white",
   "name": "House White — Chenin Blanc",
   "category": "wine",
-  "price": 8,
+  "price": 800,
   "description": "Crisp apple and honey.",
   "emoji": "🥂",
   "gradient": [
@@ -1798,7 +1798,7 @@
      },
      {
       "name": "Bottle",
-      "price": 22
+      "price": 2200
      }
     ]
    }
@@ -1809,7 +1809,7 @@
   "id": "sauv-blanc",
   "name": "Sauvignon Blanc, Marlborough",
   "category": "wine",
-  "price": 11,
+  "price": 1100,
   "description": "Zesty passion fruit and lime.",
   "emoji": "🥂",
   "gradient": [
@@ -1826,7 +1826,7 @@
      },
      {
       "name": "Bottle",
-      "price": 32
+      "price": 3200
      }
     ]
    }
@@ -1837,7 +1837,7 @@
   "id": "rose",
   "name": "Provence Rosé",
   "category": "wine",
-  "price": 11,
+  "price": 1100,
   "description": "Dry, strawberry and peach.",
   "emoji": "🌸",
   "gradient": [
@@ -1854,7 +1854,7 @@
      },
      {
       "name": "Bottle",
-      "price": 32
+      "price": 3200
      }
     ]
    }
@@ -1865,7 +1865,7 @@
   "id": "prosecco",
   "name": "Prosecco DOC",
   "category": "champagne",
-  "price": 10,
+  "price": 1000,
   "description": "Fine bubbles, green apple.",
   "emoji": "🥂",
   "gradient": [
@@ -1882,7 +1882,7 @@
      },
      {
       "name": "Bottle",
-      "price": 28
+      "price": 2800
      }
     ]
    }
@@ -1893,7 +1893,7 @@
   "id": "moet",
   "name": "Moët & Chandon Brut",
   "category": "champagne",
-  "price": 18,
+  "price": 1800,
   "popular": true,
   "description": "Bright fruit, elegant maturity.",
   "emoji": "🍾",
@@ -1911,7 +1911,7 @@
      },
      {
       "name": "Bottle",
-      "price": 77
+      "price": 7700
      }
     ]
    }
@@ -1922,7 +1922,7 @@
   "id": "veuve",
   "name": "Veuve Clicquot Yellow Label",
   "category": "champagne",
-  "price": 20,
+  "price": 2000,
   "description": "Toasty brioche, crisp pear.",
   "emoji": "🍾",
   "gradient": [
@@ -1939,7 +1939,7 @@
      },
      {
       "name": "Bottle",
-      "price": 90
+      "price": 9000
      }
     ]
    }
@@ -1950,7 +1950,7 @@
   "id": "moet-rose",
   "name": "Moët Rosé Impérial",
   "category": "champagne",
-  "price": 105,
+  "price": 10500,
   "description": "Bottle. Wild strawberry and rose petals.",
   "emoji": "🌹",
   "gradient": [
@@ -1963,7 +1963,7 @@
   "id": "dom-perignon",
   "name": "Dom Pérignon Vintage",
   "category": "champagne",
-  "price": 320,
+  "price": 32000,
   "description": "Bottle. The icon — with sparkler service.",
   "emoji": "✨",
   "gradient": [
@@ -1976,7 +1976,7 @@
   "id": "ace-of-spades",
   "name": "Armand de Brignac Brut Gold",
   "category": "champagne",
-  "price": 450,
+  "price": 45000,
   "description": "Bottle. Gold-plated, VIP sparkler parade.",
   "emoji": "♠️",
   "gradient": [
@@ -1989,7 +1989,7 @@
   "id": "house-lager",
   "name": "House Lager (draught)",
   "category": "beer",
-  "price": 6,
+  "price": 600,
   "description": "Crisp and cold, 500ml.",
   "emoji": "🍺",
   "gradient": [
@@ -2006,7 +2006,7 @@
      },
      {
       "name": "Pitcher",
-      "price": 16
+      "price": 1600
      }
     ]
    }
@@ -2017,7 +2017,7 @@
   "id": "heineken",
   "name": "Heineken",
   "category": "beer",
-  "price": 6,
+  "price": 600,
   "description": "Bottle, 330ml.",
   "emoji": "🍺",
   "gradient": [
@@ -2034,7 +2034,7 @@
      },
      {
       "name": "Bucket of 5",
-      "price": 22
+      "price": 2200
      }
     ]
    }
@@ -2045,7 +2045,7 @@
   "id": "corona",
   "name": "Corona Extra",
   "category": "beer",
-  "price": 6,
+  "price": 600,
   "popular": true,
   "description": "Bottle with lime, 355ml.",
   "emoji": "🍋",
@@ -2063,7 +2063,7 @@
      },
      {
       "name": "Bucket of 5",
-      "price": 22
+      "price": 2200
      }
     ]
    }
@@ -2074,7 +2074,7 @@
   "id": "guinness",
   "name": "Guinness Draught",
   "category": "beer",
-  "price": 7,
+  "price": 700,
   "description": "Creamy Irish stout, pint.",
   "emoji": "🍺",
   "gradient": [
@@ -2087,7 +2087,7 @@
   "id": "hazy-ipa",
   "name": "Hazy IPA",
   "category": "beer",
-  "price": 8,
+  "price": 800,
   "description": "Juicy, tropical, softly bitter.",
   "emoji": "🍺",
   "gradient": [
@@ -2100,7 +2100,7 @@
   "id": "savanna",
   "name": "Savanna Dry Cider",
   "category": "beer",
-  "price": 6,
+  "price": 600,
   "description": "Crisp apple cider, bottle.",
   "emoji": "🍏",
   "gradient": [
@@ -2113,7 +2113,7 @@
   "id": "baileys",
   "name": "Baileys Irish Cream",
   "category": "liqueurs",
-  "price": 7,
+  "price": 700,
   "description": "Over ice, creamy and sweet.",
   "emoji": "🍫",
   "gradient": [
@@ -2134,7 +2134,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 60
+      "price": 6000
      }
     ]
    }
@@ -2145,7 +2145,7 @@
   "id": "amarula",
   "name": "Amarula",
   "category": "liqueurs",
-  "price": 7,
+  "price": 700,
   "description": "Marula fruit cream liqueur.",
   "emoji": "🐘",
   "gradient": [
@@ -2166,7 +2166,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 55
+      "price": 5500
      }
     ]
    }
@@ -2177,7 +2177,7 @@
   "id": "kahlua",
   "name": "Kahlúa",
   "category": "liqueurs",
-  "price": 7,
+  "price": 700,
   "description": "Rich coffee liqueur.",
   "emoji": "☕",
   "gradient": [
@@ -2198,7 +2198,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 55
+      "price": 5500
      }
     ]
    }
@@ -2209,7 +2209,7 @@
   "id": "cointreau",
   "name": "Cointreau",
   "category": "liqueurs",
-  "price": 8,
+  "price": 800,
   "description": "Bitter & sweet orange peel.",
   "emoji": "🍊",
   "gradient": [
@@ -2230,7 +2230,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 65
+      "price": 6500
      }
     ]
    }
@@ -2241,7 +2241,7 @@
   "id": "aperol",
   "name": "Aperol Spritz",
   "category": "liqueurs",
-  "price": 12,
+  "price": 1200,
   "popular": true,
   "description": "Aperol, prosecco, soda, orange.",
   "emoji": "🍊",
@@ -2255,7 +2255,7 @@
   "id": "jager",
   "name": "Jägermeister",
   "category": "liqueurs",
-  "price": 6,
+  "price": 600,
   "description": "56 herbs — ice cold.",
   "emoji": "🦌",
   "gradient": [
@@ -2276,7 +2276,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 55
+      "price": 5500
      }
     ]
    }
@@ -2287,7 +2287,7 @@
   "id": "disaronno",
   "name": "Disaronno Amaretto",
   "category": "liqueurs",
-  "price": 7,
+  "price": 700,
   "description": "Sweet almond, on the rocks.",
   "emoji": "🌰",
   "gradient": [
@@ -2308,7 +2308,7 @@
      },
      {
       "name": "Bottle (750ml)",
-      "price": 60
+      "price": 6000
      }
     ]
    }
@@ -2319,7 +2319,7 @@
   "id": "tequila-shot",
   "name": "Tequila Shot",
   "category": "shots",
-  "price": 6,
+  "price": 600,
   "popular": true,
   "description": "Salt, lime, go.",
   "emoji": "🌵",
@@ -2337,11 +2337,11 @@
      },
      {
       "name": "5 shots",
-      "price": 18
+      "price": 1800
      },
      {
       "name": "10 shots",
-      "price": 42
+      "price": 4200
      }
     ]
    }
@@ -2352,7 +2352,7 @@
   "id": "jager-bomb",
   "name": "Jäger Bomb",
   "category": "shots",
-  "price": 9,
+  "price": 900,
   "description": "Jägermeister dropped into energy drink.",
   "emoji": "💣",
   "gradient": [
@@ -2369,7 +2369,7 @@
      },
      {
       "name": "5",
-      "price": 32
+      "price": 3200
      }
     ]
    }
@@ -2380,7 +2380,7 @@
   "id": "b52",
   "name": "B-52",
   "category": "shots",
-  "price": 8,
+  "price": 800,
   "description": "Kahlúa, Baileys, Grand Marnier — layered.",
   "emoji": "🎯",
   "gradient": [
@@ -2393,7 +2393,7 @@
   "id": "kamikaze",
   "name": "Kamikaze",
   "category": "shots",
-  "price": 7,
+  "price": 700,
   "description": "Vodka, triple sec, lime.",
   "emoji": "✈️",
   "gradient": [
@@ -2406,7 +2406,7 @@
   "id": "lemon-drop",
   "name": "Lemon Drop",
   "category": "shots",
-  "price": 7,
+  "price": 700,
   "description": "Citrus vodka, lemon, sugar rim.",
   "emoji": "🍋",
   "gradient": [
@@ -2419,7 +2419,7 @@
   "id": "rizz-roulette",
   "name": "Rizz Roulette (6)",
   "category": "shots",
-  "price": 36,
+  "price": 3600,
   "description": "Six mystery shots — one of them is chilli.",
   "emoji": "🎲",
   "gradient": [
@@ -2432,7 +2432,7 @@
   "id": "no-cap",
   "name": "No Cap",
   "category": "mocktails",
-  "price": 9,
+  "price": 900,
   "description": "Seedlip Garden, cucumber, mint, elderflower tonic.",
   "emoji": "🥒",
   "gradient": [
@@ -2448,7 +2448,7 @@
   "id": "main-character",
   "name": "Main Character",
   "category": "mocktails",
-  "price": 9,
+  "price": 900,
   "popular": true,
   "description": "Hibiscus, raspberry, lemon, vanilla soda.",
   "emoji": "🌺",
@@ -2465,7 +2465,7 @@
   "id": "virgin-mojito",
   "name": "Virgin Mojito",
   "category": "mocktails",
-  "price": 8,
+  "price": 800,
   "description": "Mint, lime, sugar, soda.",
   "emoji": "🌿",
   "gradient": [
@@ -2481,7 +2481,7 @@
   "id": "virgin-colada",
   "name": "Virgin Colada",
   "category": "mocktails",
-  "price": 8,
+  "price": 800,
   "description": "Pineapple, coconut cream, lime.",
   "emoji": "🍍",
   "gradient": [
@@ -2497,7 +2497,7 @@
   "id": "passion-fizz",
   "name": "Passion Fizz",
   "category": "mocktails",
-  "price": 8,
+  "price": 800,
   "description": "Passion fruit, ginger, soda.",
   "emoji": "🥭",
   "gradient": [
@@ -2513,7 +2513,7 @@
   "id": "coke",
   "name": "Coca-Cola",
   "category": "soft",
-  "price": 3,
+  "price": 300,
   "description": "Classic, Zero or Diet.",
   "emoji": "🥤",
   "gradient": [
@@ -2545,7 +2545,7 @@
   "id": "sprite",
   "name": "Sprite / Fanta",
   "category": "soft",
-  "price": 3,
+  "price": 300,
   "description": "Lemon-lime or orange.",
   "emoji": "🥤",
   "gradient": [
@@ -2573,7 +2573,7 @@
   "id": "tonic",
   "name": "Tonic / Soda / Ginger Ale",
   "category": "soft",
-  "price": 3,
+  "price": 300,
   "description": "Premium mixers.",
   "emoji": "🫧",
   "gradient": [
@@ -2586,7 +2586,7 @@
   "id": "red-bull",
   "name": "Red Bull",
   "category": "soft",
-  "price": 5,
+  "price": 500,
   "description": "Energy drink, 250ml.",
   "emoji": "⚡",
   "gradient": [
@@ -2599,7 +2599,7 @@
   "id": "juice",
   "name": "Fresh Juice",
   "category": "soft",
-  "price": 5,
+  "price": 500,
   "description": "Orange, pineapple, watermelon or passion.",
   "emoji": "🧃",
   "gradient": [
@@ -2635,7 +2635,7 @@
   "id": "water",
   "name": "Mineral Water",
   "category": "soft",
-  "price": 2,
+  "price": 200,
   "description": "Still or sparkling, 500ml.",
   "emoji": "💧",
   "gradient": [
@@ -2652,7 +2652,7 @@
      },
      {
       "name": "Sparkling",
-      "price": 1
+      "price": 100
      }
     ]
    }
@@ -2663,7 +2663,7 @@
   "id": "coffee",
   "name": "Coffee",
   "category": "soft",
-  "price": 4,
+  "price": 400,
   "description": "Espresso, americano, latte or cappuccino.",
   "emoji": "☕",
   "gradient": [
@@ -2684,11 +2684,11 @@
      },
      {
       "name": "Latte",
-      "price": 1
+      "price": 100
      },
      {
       "name": "Cappuccino",
-      "price": 1
+      "price": 100
      }
     ]
    }
@@ -2699,7 +2699,7 @@
   "id": "truffle-fries",
   "name": "Truffle Parm Fries",
   "category": "small-plates",
-  "price": 9,
+  "price": 900,
   "popular": true,
   "description": "Hand-cut fries, truffle oil, parmesan, aioli.",
   "emoji": "🍟",
@@ -2716,7 +2716,7 @@
   "id": "wings",
   "name": "Hot Honey Wings",
   "category": "small-plates",
-  "price": 12,
+  "price": 1200,
   "description": "Crispy wings, chilli-honey glaze, blue-cheese dip.",
   "emoji": "🍗",
   "gradient": [
@@ -2733,7 +2733,7 @@
      },
      {
       "name": "12 pcs",
-      "price": 10
+      "price": 1000
      }
     ]
    }
@@ -2744,7 +2744,7 @@
   "id": "tacos",
   "name": "Birria Tacos",
   "category": "small-plates",
-  "price": 13,
+  "price": 1300,
   "description": "Three slow-braised beef tacos with consommé.",
   "emoji": "🌮",
   "gradient": [
@@ -2757,7 +2757,7 @@
   "id": "sliders",
   "name": "Smash Sliders",
   "category": "small-plates",
-  "price": 14,
+  "price": 1400,
   "description": "Three mini smash burgers, cheese, pickles, Rizz sauce.",
   "emoji": "🍔",
   "gradient": [
@@ -2770,7 +2770,7 @@
   "id": "calamari",
   "name": "Crispy Calamari",
   "category": "small-plates",
-  "price": 12,
+  "price": 1200,
   "description": "Lemon, chilli mayo.",
   "emoji": "🦑",
   "gradient": [
@@ -2783,7 +2783,7 @@
   "id": "nachos",
   "name": "Loaded Nachos",
   "category": "small-plates",
-  "price": 11,
+  "price": 1100,
   "description": "Cheese, jalapeños, salsa, guac, sour cream.",
   "emoji": "🧀",
   "gradient": [
@@ -2799,7 +2799,7 @@
   "id": "platter",
   "name": "Rizz Sharing Platter",
   "category": "small-plates",
-  "price": 38,
+  "price": 3800,
   "popular": true,
   "description": "Wings, sliders, calamari, fries & dips. Serves 4.",
   "emoji": "🍱",
@@ -2813,7 +2813,7 @@
   "id": "steak-frites",
   "name": "Steak Frites",
   "category": "mains",
-  "price": 28,
+  "price": 2800,
   "description": "250g sirloin, peppercorn sauce, fries.",
   "emoji": "🥩",
   "gradient": [
@@ -2845,7 +2845,7 @@
   "id": "burger",
   "name": "The Rizz Burger",
   "category": "mains",
-  "price": 19,
+  "price": 1900,
   "popular": true,
   "description": "Double patty, cheddar, bacon jam, brioche, fries.",
   "emoji": "🍔",
@@ -2859,7 +2859,7 @@
   "id": "pasta",
   "name": "Spicy Vodka Rigatoni",
   "category": "mains",
-  "price": 18,
+  "price": 1800,
   "description": "Creamy tomato-vodka sauce, chilli, basil.",
   "emoji": "🍝",
   "gradient": [
@@ -2875,7 +2875,7 @@
   "id": "salmon-bowl",
   "name": "Miso Salmon Bowl",
   "category": "mains",
-  "price": 22,
+  "price": 2200,
   "description": "Sticky rice, miso salmon, edamame, pickled ginger.",
   "emoji": "🍣",
   "gradient": [
@@ -2888,7 +2888,7 @@
   "id": "nyama-choma",
   "name": "Grilled Chicken & Fries",
   "category": "mains",
-  "price": 17,
+  "price": 1700,
   "description": "Half chicken, peri-peri glaze, kachumbari, fries.",
   "emoji": "🍗",
   "gradient": [
@@ -2901,7 +2901,7 @@
   "id": "churros",
   "name": "Churros & Chocolate",
   "category": "desserts",
-  "price": 9,
+  "price": 900,
   "description": "Cinnamon sugar, dark chocolate dip.",
   "emoji": "🍩",
   "gradient": [
@@ -2917,7 +2917,7 @@
   "id": "lava-cake",
   "name": "Molten Lava Cake",
   "category": "desserts",
-  "price": 10,
+  "price": 1000,
   "description": "Warm chocolate cake, vanilla ice cream.",
   "emoji": "🍫",
   "gradient": [

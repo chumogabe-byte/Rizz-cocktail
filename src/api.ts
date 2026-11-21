@@ -49,6 +49,7 @@ export interface Snapshot {
   menu: MenuItem[];
   events: BarEvent[];
   tickets: TicketOrder[];
+  mpesa: { mode: 'mock' | 'sandbox' | 'production'; shortcode: string | null; callbackConfigured: boolean };
 }
 
 type Handlers = {

@@ -5,6 +5,7 @@ import { getItem } from '../data/menu';
 import { actions, cartSubtotal, useStore } from '../store/store';
 import { Art } from '../components/Art';
 import { Empty, Stepper, TopBar } from '../components/Layout';
+import { isValidKePhone } from '../components/MpesaPay';
 import { BAR, money } from '../config';
 
 const TIPS = [0, 0.1, 0.15, 0.2];
@@ -21,11 +22,14 @@ export function Cart({ nav }: { nav: Nav }) {
   const [tipRate, setTipRate] = useState(0.1);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const user = useStore((s) => s.user);
+  const [payMethod, setPayMethod] = useState<'mpesa' | 'cash'>('mpesa');
+  const [mpesaPhone, setMpesaPhone] = useState(user?.phone || '');
 
   const subtotal = cartSubtotal(cart);
   const discount = promo?.discount ?? 0;
-  const fee = +((subtotal - discount) * BAR.serviceFeeRate).toFixed(2);
-  const tip = +(subtotal * tipRate).toFixed(2);
+  const fee = Math.round((subtotal - discount) * BAR.serviceFeeRate);
+  const tip = Math.round(subtotal * tipRate);
   const total = subtotal - discount + fee + tip;
 
   // (Re)validate the applied code whenever it or the basket changes — the server is the source of truth.
@@ -50,10 +54,13 @@ export function Cart({ nav }: { nav: Nav }) {
 
   const place = async () => {
     if (fulfilment === 'table' && !table.trim()) return setErr('Enter your table or seat number so we can find you.');
+    if (payMethod === 'mpesa' && !isValidKePhone(mpesaPhone)) return setErr('Enter your M-Pesa number, e.g. 0712 345 678.');
     if (appliedCode && !promo) actions.applyCode(null);
     setBusy(true); setErr('');
     try {
-      const order = await actions.placeOrder({ fulfilment, table: fulfilment === 'table' ? table.trim() : undefined, notes: notes.trim() || undefined, tip });
+      const order = await actions.placeOrder({ fulfilment, table: fulfilment === 'table' ? table.trim() : undefined, notes: notes.trim() || undefined, tip, paymentMethod: payMethod });
+      // Send the PIN prompt straight away; if it can't be sent the order page lets them retry or pay at the bar.
+      if (payMethod === 'mpesa') await actions.payMpesa('order', order.id, mpesaPhone).catch(() => {});
       nav.go({ name: 'order', id: order.id });
     } catch (e) {
       setErr((e as Error).message);
@@ -119,6 +126,19 @@ export function Cart({ nav }: { nav: Nav }) {
       </div>
 
       <div className="card stack">
+        <h3>Payment</h3>
+        <div className="seg">
+          <button className={payMethod === 'mpesa' ? 'on' : ''} onClick={() => setPayMethod('mpesa')}>📱 M-Pesa</button>
+          <button className={payMethod === 'cash' ? 'on' : ''} onClick={() => setPayMethod('cash')}>💵 Pay at the bar</button>
+        </div>
+        {payMethod === 'mpesa' ? (
+          <label className="field"><span>M-Pesa number — you'll get a PIN prompt after placing the order</span>
+            <input inputMode="tel" value={mpesaPhone} onChange={(e) => { setMpesaPhone(e.target.value); setErr(''); }} placeholder="0712 345 678" />
+          </label>
+        ) : <p className="tiny muted">Pay your server or at the bar by card, cash or M-Pesa till.</p>}
+      </div>
+
+      <div className="card stack">
         <h3>Tip the team</h3>
         <div className="seg">
           {TIPS.map((t) => <button key={t} className={tipRate === t ? 'on' : ''} onClick={() => setTipRate(t)}>{t === 0 ? 'None' : `${t * 100}%`}</button>)}
@@ -131,12 +151,12 @@ export function Cart({ nav }: { nav: Nav }) {
         <div><span>Service ({BAR.serviceFeeRate * 100}%)</span><span>{money(fee)}</span></div>
         <div><span>Tip</span><span>{money(tip)}</span></div>
         <div className="summary-total"><span>Total</span><span>{money(total)}</span></div>
-        <p className="tiny muted">Pay at the bar or with your server. Card & mobile money accepted. App orders earn Rizz Rewards points.</p>
+        <p className="tiny muted">App orders earn Rizz Rewards points.</p>
       </div>
 
       {err && <p className="error">{err}</p>}
       <div className="sticky-cta">
-        <button className="btn btn-primary grow" onClick={place} disabled={busy}>{busy ? 'Sending to the bar…' : <>Place order · {money(total)}</>}</button>
+        <button className="btn btn-primary grow" onClick={place} disabled={busy}>{busy ? 'Sending to the bar…' : payMethod === 'mpesa' ? <>Order & pay {money(total)} with M-Pesa</> : <>Place order · {money(total)}</>}</button>
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ export interface State {
   menu: MenuItem[];
   events: BarEvent[];
   tickets: TicketOrder[];
+  mpesa: Snapshot['mpesa'] | null;
   online: boolean;
   loaded: boolean;
   staffToken: string | null;
@@ -48,9 +49,9 @@ function load(): State {
     favorites: saved.favorites ?? [],
     appliedCode: saved.appliedCode ?? null,
     orders: [], bookings: [], posts: [], ads: [], vouchers: [], me: null,
-    settings: { rewardThreshold: 100, rewardValue: 15, pointsPerUnit: 1 },
+    settings: { rewardThreshold: 100, rewardValue: 1000, pointsPerUnit: 0.01 },
     menu: seedMenu as MenuItem[],
-    events: [], tickets: [],
+    events: [], tickets: [], mpesa: null,
     online: false, loaded: false,
     staffToken: token,
     toast: null,
@@ -152,7 +153,7 @@ export const actions = {
   },
 
   // ---- orders ----
-  async placeOrder(input: Pick<Order, 'fulfilment' | 'table' | 'notes' | 'tip'>): Promise<Order> {
+  async placeOrder(input: Pick<Order, 'fulfilment' | 'table' | 'notes' | 'tip'> & { paymentMethod: 'mpesa' | 'cash' }): Promise<Order> {
     const order = await api<Order>('/api/orders', { method: 'POST', body: {
       ...input, lines: state.cart, voucherCode: state.appliedCode || undefined,
       customerId: state.customerId, customer: state.user?.name, phone: state.user?.phone } });
@@ -216,6 +217,20 @@ export const actions = {
     return api<{ updated: number }>('/api/menu/offer', { method: 'POST', ...staff(), body: { category, percent } });
   },
   async deleteMenuItem(id: string) { await api(`/api/menu/${id}`, { method: 'DELETE', ...staff() }); },
+  // ---- M-Pesa ----
+  /** Sends the M-Pesa PIN prompt to `phone` for an order or ticket purchase. */
+  payMpesa(kind: 'order' | 'ticket', refId: string, phone: string) {
+    return api<{ paymentId: string; amount: number; message: string; mode: string }>('/api/payments/mpesa', { method: 'POST',
+      ...staff(), body: { kind, refId, phone, customerId: state.customerId } });
+  },
+  paymentStatus(id: string) {
+    return api<{ status: string; receipt?: string; message?: string }>(`/api/payments/${id}/status`, { method: 'POST' });
+  },
+  async markOrderPaid(id: string, paid: boolean) {
+    const o = await api<Order>(`/api/orders/${id}`, { method: 'PATCH', ...staff(), body: { markPaid: paid } });
+    set({ orders: upsert(state.orders, o) });
+  },
+
   // ---- events & tickets ----
   async buyTickets(eventId: string, items: { typeId: string; qty: number }[]) {
     const t = await api<TicketOrder>(`/api/events/${eventId}/tickets`, { method: 'POST',

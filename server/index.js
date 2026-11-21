@@ -14,6 +14,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CALLBACK_SECRET, friendlyResult, mpesaInfo, normalizePhone, parseCallback, stkPush, stkQuery } from './mpesa.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
@@ -24,7 +25,8 @@ const SERVICE_FEE_RATE = 0.05;
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // ---------- persistence ----------
-const DEFAULT_SETTINGS = { rewardThreshold: 100, rewardValue: 15, pointsPerUnit: 1 };
+// Prices are in Kenyan shillings (M-Pesa). 1 point per KSh 100 spent; 100 points → KSh 1,000 reward code.
+const DEFAULT_SETTINGS = { rewardThreshold: 100, rewardValue: 1000, pointsPerUnit: 0.01 };
 const now0 = Date.now();
 const DEFAULT_ADS = [
   { id: 'ad-happy', title: 'Happy Hour 2-for-1', subtitle: 'All classic cocktails, 4–7 PM daily', emoji: '🍸', theme: 'purple',
@@ -50,12 +52,12 @@ const DEFAULT_EVENTS = [
   { id: 'ev-rooftop', title: 'Rooftop Sessions: Afro House', subtitle: 'Resident DJs till late', emoji: '🎧', theme: 'blue',
     startsAt: dayAt(nextDow(5), 21), endsAt: dayAt(nextDow(5) + 1, 3), location: 'Rooftop Terrace',
     description: 'Afro house & amapiano on the rooftop with city views, heaters and a fully stocked bar. Early-bird tickets include a welcome cocktail.',
-    ticketTypes: [{ id: 'tt-early', name: 'Early bird + welcome cocktail', price: 15, capacity: 60 }, { id: 'tt-reg', name: 'Regular', price: 20, capacity: 150 }, { id: 'tt-vip', name: 'VIP table (6 guests)', price: 250, capacity: 6 }],
+    ticketTypes: [{ id: 'tt-early', name: 'Early bird + welcome cocktail', price: 1500, capacity: 60 }, { id: 'tt-reg', name: 'Regular', price: 2000, capacity: 150 }, { id: 'tt-vip', name: 'VIP table (6 guests)', price: 25000, capacity: 6 }],
     featured: true, published: true, createdAt: now0 },
   { id: 'ev-whisky', title: 'Whisky Tasting Masterclass', subtitle: '6 drams · guided by our head bartender', emoji: '🥃', theme: 'orange',
     startsAt: dayAt(nextDow(3), 19), endsAt: dayAt(nextDow(3), 21), location: 'VIP Room',
     description: 'Taste six whiskies from Scotland, Ireland, the US and Japan, paired with small bites. Limited seats.',
-    ticketTypes: [{ id: 'tt-seat', name: 'Seat', price: 45, capacity: 20 }], featured: true, published: true, createdAt: now0 },
+    ticketTypes: [{ id: 'tt-seat', name: 'Seat', price: 4500, capacity: 20 }], featured: true, published: true, createdAt: now0 },
   { id: 'ev-ladies', title: 'Ladies Night', subtitle: 'Free welcome shot for the ladies', emoji: '💃', theme: 'pink',
     startsAt: dayAt(nextDow(3), 20), endsAt: dayAt(nextDow(4), 1), location: 'Main Bar',
     description: 'Every Wednesday — free welcome shot, cocktail specials and the best R&B all night. Free entry, RSVP to skip the queue.',
@@ -63,13 +65,13 @@ const DEFAULT_EVENTS = [
   { id: 'ev-football', title: 'Big Match Screening', subtitle: 'Giant screen · bucket deals', emoji: '⚽', theme: 'lime',
     startsAt: dayAt(nextDow(6), 18), endsAt: dayAt(nextDow(6), 21), location: 'Main Bar',
     description: 'Watch the big game on our giant screen. Reserve a table ticket and get a beer bucket at a special price.',
-    ticketTypes: [{ id: 'tt-entry', name: 'Entry', price: 0, capacity: 120 }, { id: 'tt-table', name: 'Table for 4 + bucket of 5', price: 40, capacity: 15 }],
+    ticketTypes: [{ id: 'tt-entry', name: 'Entry', price: 0, capacity: 120 }, { id: 'tt-table', name: 'Table for 4 + bucket of 5', price: 4000, capacity: 15 }],
     featured: false, published: true, createdAt: now0 },
 ];
 
 const SEED_MENU = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed-menu.json'), 'utf8'));
 
-let db = { events: DEFAULT_EVENTS, tickets: [], menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
+let db = { payments: [], events: DEFAULT_EVENTS, tickets: [], menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
 try {
   db = { ...db, ...JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) };
   db.settings = { ...DEFAULT_SETTINGS, ...db.settings };
@@ -203,6 +205,7 @@ function viewFor(c) {
     vouchers: visibleVouchers(c),
     me: c.customerId ? customerStats(c.customerId) : null,
     settings: db.settings,
+    mpesa: mpesaInfo(),
     menu: db.menu,
     events: (c.staff ? db.events : db.events.filter((e) => e.published)).map(withSales),
     tickets: c.staff ? db.tickets : db.tickets.filter((t) => t.customerId && t.customerId === c.customerId),
@@ -292,7 +295,7 @@ app.post('/api/vouchers/validate', (req, res) => {
   if (err) return res.status(400).json({ error: err });
   const d = discountFor(v, num(subtotal, 0, 1e6, 0));
   if (d.error) return res.status(400).json({ error: d.error });
-  res.json({ code: v.code, description: v.description, discount: d.discount });
+  res.json({ code: v.code, description: v.description, discount: Math.round(d.discount) });
 });
 
 app.post('/api/vouchers', requireStaff, (req, res) => {
@@ -363,16 +366,17 @@ app.post('/api/orders', (req, res) => {
     if (err) return res.status(400).json({ error: err });
     const d = discountFor(voucher, subtotal);
     if (d.error) return res.status(400).json({ error: d.error });
-    discount = d.discount;
+    discount = Math.round(d.discount);
   }
   const net = round(subtotal - discount);
-  const serviceFee = round(net * SERVICE_FEE_RATE);
-  const tip = round(Math.min(subtotal, Math.max(0, Number(b.tip) || 0)));
+  const serviceFee = Math.round(net * SERVICE_FEE_RATE);
+  const tip = Math.round(Math.min(subtotal, Math.max(0, Number(b.tip) || 0)));
   const now = Date.now();
   const order = { id: uid(), code: code('RZ'), createdAt: now, updatedAt: now, source: 'app',
     customerId, customer: str(b.customer, 60) || 'Guest', phone: str(b.phone, 30),
     lines: clean, subtotal, discount, voucherCode: voucher?.code, serviceFee, tip, total: round(net + serviceFee + tip),
-    fulfilment, table, notes: str(b.notes, 300), status: 'new' };
+    fulfilment, table, notes: str(b.notes, 300), status: 'new',
+    payment: { method: b.paymentMethod === 'mpesa' ? 'mpesa' : 'cash', status: 'unpaid' } };
   if (voucher) voucher.redemptions.push({ customerId, orderId: order.id, at: now });
   db.orders.unshift(order);
   save();
@@ -390,12 +394,19 @@ app.patch('/api/orders/:id', (req, res) => {
   if (status !== undefined) {
     if (!ORDER_STATUSES.includes(status)) return res.status(400).json({ error: 'Bad status' });
     if (!staff && !(owner && status === 'cancelled' && o.status === 'new')) return res.status(403).json({ error: 'Not allowed' });
+    if (!staff && ['paid', 'pending'].includes(o.payment?.status)) return res.status(400).json({ error: 'This order is paid (or payment is in progress) — please ask a member of staff to cancel it.' });
     // A cancelled order gives its voucher back
     if (status === 'cancelled' && o.voucherCode) {
       const v = findVoucher(o.voucherCode);
       if (v) { v.redemptions = v.redemptions.filter((r) => r.orderId !== o.id); pushVouchers(v.customerId || o.customerId); }
     }
     o.status = status;
+  }
+  if (req.body?.markPaid !== undefined) {
+    if (!staff) return res.status(403).json({ error: 'Not allowed' });
+    o.payment = req.body.markPaid
+      ? { ...o.payment, method: o.payment?.status === 'paid' ? o.payment.method : 'cash', status: 'paid', amount: o.payment?.amount ?? Math.ceil(o.total), paidAt: Date.now() }
+      : { method: 'cash', status: 'unpaid' };
   }
   if (rating !== undefined) {
     if (!owner && !staff) return res.status(403).json({ error: 'Not allowed' });
@@ -563,7 +574,8 @@ app.post('/api/events/:id/tickets', (req, res) => {
     code: `TK-${crypto.randomBytes(3).toString('hex').toUpperCase()}`, typeId: l.typeId, typeName: l.name, checkedInAt: null })));
   const t = { id: uid(), code: code('TO'), createdAt: Date.now(), eventId: ev.id, eventTitle: ev.title, startsAt: ev.startsAt,
     location: ev.location, customerId, customer, phone, lines, total, units,
-    status: total === 0 ? 'paid' : 'reserved' }; // free RSVPs need no payment
+    status: total === 0 ? 'paid' : 'reserved', // free RSVPs need no payment
+    payment: { method: total === 0 ? 'free' : 'unpaid', status: total === 0 ? 'paid' : 'unpaid' } };
   db.tickets.unshift(t);
   save(); pushTicket(t);
   res.status(201).json(t);
@@ -576,6 +588,9 @@ app.patch('/api/tickets/:id', (req, res) => {
   if (!['reserved', 'paid', 'checked-in', 'cancelled'].includes(status)) return res.status(400).json({ error: 'Bad status' });
   const owner = customerId && customerId === t.customerId;
   if (!isStaff(req) && !(owner && status === 'cancelled' && t.status === 'reserved')) return res.status(403).json({ error: 'Not allowed' });
+  if (!isStaff(req) && t.payment?.status === 'pending') return res.status(400).json({ error: 'Payment is in progress — wait for it to finish.' });
+  if ((status === 'paid' || status === 'checked-in') && t.payment?.status !== 'paid' && t.total > 0)
+    t.payment = { method: 'cash', status: 'paid', amount: Math.ceil(t.total), paidAt: Date.now() };
   t.status = status;
   if (status === 'checked-in') t.units.forEach((u) => (u.checkedInAt ||= Date.now()));
   const rewarded = (status === 'paid' || status === 'checked-in') && issueRewards(t.customerId);
@@ -598,6 +613,95 @@ app.post('/api/tickets/checkin', requireStaff, (req, res) => {
   save(); pushTicket(t);
   res.json({ ticket: t, unit: u, unpaid: wasUnpaid });
 });
+
+// ---------- M-Pesa payments ----------
+function payableRef(kind, refId) {
+  if (kind === 'order') {
+    const o = db.orders.find((x) => x.id === refId);
+    return o && { ref: o, amount: Math.ceil(o.total), reference: o.code, description: 'Rizz order', customerId: o.customerId,
+      blocked: o.status === 'cancelled' ? 'This order was cancelled.' : o.payment?.status === 'paid' ? 'Already paid.' : null };
+  }
+  if (kind === 'ticket') {
+    const t = db.tickets.find((x) => x.id === refId);
+    return t && { ref: t, amount: Math.ceil(t.total), reference: t.code, description: 'Rizz tickets', customerId: t.customerId,
+      blocked: t.status === 'cancelled' ? 'These tickets were cancelled.' : t.payment?.status === 'paid' ? 'Already paid.' : t.total <= 0 ? 'Nothing to pay.' : null };
+  }
+  return null;
+}
+
+function applyPaymentResult(result) {
+  if (!result?.checkoutRequestId) return;
+  const p = db.payments.find((x) => x.checkoutRequestId === result.checkoutRequestId);
+  if (!p || p.status !== 'pending') return; // unknown or already settled (callbacks can repeat)
+  const target = payableRef(p.kind, p.refId);
+  const ok = result.success && (result.amount === undefined || Number(result.amount) >= p.amount);
+  p.status = ok ? 'success' : 'failed';
+  p.receipt = result.receipt; p.resultCode = result.resultCode; p.resultDesc = result.resultDesc; p.settledAt = Date.now();
+  if (target) {
+    const r = target.ref;
+    r.payment = ok
+      ? { method: 'mpesa', status: 'paid', receipt: result.receipt, phone: p.phone, amount: p.amount, paidAt: Date.now(), paymentId: p.id }
+      : { method: 'mpesa', status: 'failed', phone: p.phone, amount: p.amount, message: friendlyResult(result.resultCode, result.resultDesc), paymentId: p.id };
+    if (p.kind === 'ticket') {
+      if (ok && r.status === 'reserved') r.status = 'paid';
+      const rewarded = ok && issueRewards(r.customerId);
+      pushTicket(r);
+      if (rewarded) pushVouchers(r.customerId);
+    } else {
+      pushOrder(r);
+    }
+  }
+  save();
+}
+
+app.post('/api/payments/mpesa', async (req, res) => {
+  const { kind, refId, customerId } = req.body || {};
+  const target = payableRef(kind, refId);
+  if (!target) return res.status(404).json({ error: 'Nothing to pay for.' });
+  if (!isStaff(req) && (!customerId || customerId !== target.customerId)) return res.status(403).json({ error: 'Not allowed' });
+  if (target.blocked) return res.status(400).json({ error: target.blocked });
+  const phone = normalizePhone(req.body.phone);
+  if (!phone) return res.status(400).json({ error: 'Enter a valid Safaricom number, e.g. 0712 345 678.' });
+  const recent = db.payments.find((x) => x.refId === refId && x.status === 'pending' && Date.now() - x.createdAt < 60_000);
+  if (recent) return res.status(429).json({ error: 'A prompt was just sent — check your phone, or wait a minute to resend.' });
+  try {
+    const p = { id: uid(), kind, refId, phone, amount: target.amount, status: 'pending', createdAt: Date.now() };
+    const r = await stkPush({ phone, amount: target.amount, reference: target.reference, description: target.description,
+      onMockResult: (result) => applyPaymentResult(result) });
+    p.checkoutRequestId = r.checkoutRequestId; p.merchantRequestId = r.merchantRequestId;
+    db.payments.unshift(p);
+    target.ref.payment = { method: 'mpesa', status: 'pending', phone, amount: target.amount, paymentId: p.id };
+    save();
+    kind === 'ticket' ? pushTicket(target.ref) : pushOrder(target.ref);
+    res.json({ paymentId: p.id, amount: p.amount, message: r.message, mode: mpesaInfo().mode });
+  } catch (e) {
+    res.status(502).json({ error: e.message || 'M-Pesa is unavailable right now. Try again or pay at the bar.' });
+  }
+});
+
+// Daraja calls this with the result of the PIN prompt
+app.post(`/api/mpesa/callback/:secret`, (req, res) => {
+  if (req.params.secret !== CALLBACK_SECRET) return res.status(404).end();
+  applyPaymentResult(parseCallback(req.body));
+  res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+});
+
+// Client polls this while waiting; falls back to Daraja's status query if no callback arrived
+app.post('/api/payments/:id/status', async (req, res) => {
+  const p = db.payments.find((x) => x.id === req.params.id);
+  if (!p) return res.status(404).json({ error: 'Not found' });
+  if (p.status === 'pending' && Date.now() - p.createdAt > 12_000) {
+    try {
+      const q = await stkQuery(p.checkoutRequestId);
+      if (q) applyPaymentResult(q);
+    } catch { /* keep waiting */ }
+    // Give up after 3 minutes with no answer
+    if (p.status === 'pending' && Date.now() - p.createdAt > 180_000) applyPaymentResult({ checkoutRequestId: p.checkoutRequestId, success: false, resultCode: 1019, resultDesc: 'Timed out' });
+  }
+  res.json({ status: p.status, receipt: p.receipt, message: p.status === 'failed' ? friendlyResult(p.resultCode, p.resultDesc) : undefined });
+});
+
+app.get('/api/payments', requireStaff, (_req, res) => res.json(db.payments.slice(0, 200)));
 
 // ---------- menu management ----------
 function cleanItem(b, prev = {}) {
@@ -715,15 +819,15 @@ app.post('/api/demo', requireStaff, (_req, res) => {
   const mk = (customer, mins, status, table, items) => {
     const lines = items.map(([itemId, name, unitPrice, qty]) => ({ key: itemId, itemId, name, unitPrice, qty, choices: [] }));
     const subtotal = round(lines.reduce((s, l) => s + l.unitPrice * l.qty, 0));
-    const serviceFee = round(subtotal * SERVICE_FEE_RATE);
+    const serviceFee = Math.round(subtotal * SERVICE_FEE_RATE);
     return { id: uid(), code: code('RZ'), createdAt: now - mins * 60000, updatedAt: now, customer, customerId: `demo-${customer}`,
-      lines, subtotal, discount: 0, serviceFee, tip: 3, total: round(subtotal + serviceFee + 3), fulfilment: 'table', table, status };
+      lines, subtotal, discount: 0, serviceFee, tip: 300, total: round(subtotal + serviceFee + 300), fulfilment: 'table', table, status };
   };
   db.orders.unshift(
-    mk('Amara', 2, 'new', '7', [['rizz-royale', 'Rizz Royale', 16, 2], ['truffle-fries', 'Truffle Parm Fries', 9, 1]]),
-    mk('Leo', 6, 'preparing', '3', [['espresso-martini', 'Espresso Martini', 15, 3]]),
-    mk('Zuri', 11, 'ready', 'Bar 2', [['burger', 'The Rizz Burger', 19, 1], ['grey-goose', 'Grey Goose', 12, 2]]),
-    mk('Amara', 60 * 24 * 3, 'served', '4', [['moet', 'Moët & Chandon Brut', 95, 1], ['tequila-shot', 'Tequila Shot', 6, 4]]),
+    mk('Amara', 2, 'new', '7', [['rizz-royale', 'Rizz Royale', 1600, 2], ['truffle-fries', 'Truffle Parm Fries', 900, 1]]),
+    mk('Leo', 6, 'preparing', '3', [['espresso-martini', 'Espresso Martini', 1500, 3]]),
+    mk('Zuri', 11, 'ready', 'Bar 2', [['burger', 'The Rizz Burger', 1900, 1], ['grey-goose', 'Grey Goose', 1200, 2]]),
+    mk('Amara', 60 * 24 * 3, 'served', '4', [['moet', 'Moët & Chandon Brut', 9500, 1], ['tequila-shot', 'Tequila Shot', 600, 4]]),
   );
   db.bookings.unshift(
     { id: uid(), code: code('BK'), createdAt: now, spaceId: 'rooftop', spaceName: 'Rooftop Terrace', date: today, time: '21:00',

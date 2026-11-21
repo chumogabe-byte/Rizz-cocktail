@@ -64,6 +64,7 @@ export interface Order {
   notes?: string;
   status: OrderStatus;
   rating?: number;
+  payment?: Payment;
 }
 
 export type BookingStatus = 'pending' | 'confirmed' | 'declined' | 'checked-in' | 'cancelled';
@@ -91,6 +92,17 @@ export interface User {
   // stored on the device only
   name: string;
   phone: string;
+}
+
+export interface Payment {
+  method: 'mpesa' | 'cash' | 'free' | 'unpaid';
+  status: 'unpaid' | 'pending' | 'paid' | 'failed';
+  receipt?: string;
+  phone?: string;
+  amount?: number;
+  message?: string;
+  paidAt?: number;
+  paymentId?: string;
 }
 
 export interface Post {
@@ -188,4 +200,5 @@ export interface TicketOrder {
   total: number;
   units: { code: string; typeId: string; typeName: string; checkedInAt: number | null }[];
   status: TicketStatus;
+  payment?: Payment;
 }

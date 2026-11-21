@@ -59,7 +59,7 @@ export function PromosPanel() {
           <label className="field"><span>Points per reward</span><input type="number" min={0} value={rs.rewardThreshold} onChange={(e) => setRs({ ...rs, rewardThreshold: +e.target.value })} /></label>
           <label className="field"><span>Reward value</span><input type="number" min={0} value={rs.rewardValue} onChange={(e) => setRs({ ...rs, rewardValue: +e.target.value })} /></label>
         </div>
-        <p className="tiny muted">1 point per {money(1)} spent. Set either to 0 to pause rewards.</p>
+        <p className="tiny muted">1 point per {money(Math.round(1 / (settings.pointsPerUnit || 0.01)))} spent. Set either to 0 to pause rewards.</p>
         <button className="btn btn-ghost" type="submit">Save rules</button>
         <div className="kpi-row">
           <div><strong>{rewards.length}</strong><small>Rewards issued</small></div>
