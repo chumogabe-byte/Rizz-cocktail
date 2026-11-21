@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Nav } from '../router';
-import { CATEGORIES, getItem } from '../data/menu';
+import { CATEGORIES, getItem, unitPrice } from '../data/menu';
 import { actions, useStore } from '../store/store';
 import { Art } from '../components/Art';
 import { Icon } from '../components/Icon';
@@ -16,8 +16,7 @@ export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
   const [added, setAdded] = useState(false);
   if (!item) return null;
 
-  const extra = item.options?.reduce((s, o, i) => s + o.choices[sel[i]].price, 0) ?? 0;
-  const unit = item.price + extra;
+  const unit = unitPrice(item, sel);
 
   const add = () => {
     const choices = item.options?.map((o, i) => o.choices[sel[i]].name) ?? [];
@@ -54,7 +53,7 @@ export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
               {o.choices.map((c, ci) => (
                 <button key={c.name} className={`opt ${sel[oi] === ci ? 'opt-on' : ''}`}
                   onClick={() => setSel(sel.map((v, i) => (i === oi ? ci : v)))}>
-                  <span>{c.name}</span>{c.price > 0 && <span className="small">+{money(c.price)}</span>}
+                  <span>{c.name}</span>{c.name.startsWith('Double') ? <span className="small">{money(item.price * 2)}</span> : c.name.startsWith('Bottle (') ? <span className="small">{money(c.price)}</span> : c.price > 0 && <span className="small">+{money(c.price)}</span>}
                 </button>
               ))}
             </div>

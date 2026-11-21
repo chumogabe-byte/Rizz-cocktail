@@ -13,16 +13,19 @@ import { BookingDetail } from './screens/BookingDetail';
 import { Activity } from './screens/Activity';
 import { Profile } from './screens/Profile';
 import { Staff } from './screens/Staff';
+import { Social } from './screens/Social';
+import { Rewards } from './screens/Rewards';
+import { TV } from './screens/TV';
 
 const TABS: { route: Route; icon: string; label: string }[] = [
   { route: { name: 'home' }, icon: 'home', label: 'Home' },
   { route: { name: 'menu' }, icon: 'menu', label: 'Menu' },
   { route: { name: 'book' }, icon: 'calendar', label: 'Book' },
-  { route: { name: 'activity' }, icon: 'receipt', label: 'Activity' },
+  { route: { name: 'social' }, icon: 'camera', label: 'Moments' },
   { route: { name: 'profile' }, icon: 'user', label: 'Profile' },
 ];
 
-const initialRoute = (): Route => (location.hash === '#staff' ? { name: 'staff' } : { name: 'home' });
+const initialRoute = (): Route => (location.hash === '#staff' ? { name: 'staff' } : location.hash === '#tv' ? { name: 'tv' } : { name: 'home' });
 
 export default function App() {
   const user = useStore((s) => s.user);
@@ -56,13 +59,14 @@ export default function App() {
 
   useEffect(() => { window.scrollTo(0, 0); }, [route]);
 
+  if (route.name === 'tv') return <TV />;
   if (route.name === 'staff') {
     if (!staffUnlocked) return <StaffGate />;
     return <>{!online && <OfflineBar loaded={loaded} />}<Staff nav={nav} />{toast && <div className="toast">{toast}</div>}</>;
   }
   if (!user) return <div className="app"><Welcome /></div>;
 
-  const showNav = ['home', 'menu', 'book', 'activity', 'profile'].includes(route.name);
+  const showNav = ['home', 'menu', 'book', 'social', 'profile'].includes(route.name);
 
   return (
     <div className="app">
@@ -78,6 +82,8 @@ export default function App() {
         {route.name === 'booking' && <BookingDetail nav={nav} id={route.id} />}
         {route.name === 'activity' && <Activity key={route.tab ?? 'o'} nav={nav} tab={route.tab} />}
         {route.name === 'profile' && <Profile nav={nav} />}
+        {route.name === 'social' && <Social nav={nav} />}
+        {route.name === 'rewards' && <Rewards nav={nav} />}
       </main>
       {showNav && (
         <nav className="bottom-nav">

@@ -7,20 +7,29 @@ The design takes cues from modern nightlife apps: a dark UI with electric purple
 ## Features
 
 ### Guests
-- **Onboarding**: quick sign-in with a name and phone number.
-- **Home**: search, popular / favourite / zero-proof carousels, category shortcuts, space previews, and a live banner for your active order.
-- **Menu**: 7 categories (Signatures, Classics, Zero-Proof, Beer & Wine, Small Plates, Mains, Desserts), quick-add buttons, and a sticky cart bar.
-- **Item detail**: spirit upgrades, sizes and cooking options with prices, special requests, quantity, and favourites.
-- **Checkout**: served to your table (by table number) or picked up at the bar, notes, tip presets, and a service fee.
-- **Live order tracking**: Received → Mixing → Ready → Served. You can cancel while the order is still new, rate it with emoji feedback once it's served, and order again with one tap.
-- **Book a space**: choose from Bar Counter, Velvet Lounge Booth, Rooftop Terrace, VIP Room or the Full Venue. Pick a date (next 14 days) and a time slot (taken or past slots are blocked), set guests (limited by each space's capacity) and duration, and add an occasion and requests. Each booking gets a ticket with a booking code.
-- **Activity & profile**: order and booking history, Rizz Rewards points, and a call-the-bar link.
+- **Hero slides on every main page**: rotating, swipeable offer banners on Home, Menu, Book and Moments. Tapping one opens the right menu section, starts a booking, or saves a promo code.
+- **Full drinks & food menu**: three sections:
+  - **Alcoholic**: Cocktails, Vodka, Gin, Whiskey, Rum, Tequila, Wine, Champagne, Beer & Cider, Liqueurs, Shots. Spirits are priced per single, with Double and Bottle options and neat, on the rocks or with a mixer.
+  - **Soft drinks**: Mocktails, Sodas & Juices, Red Bull, water, coffee.
+  - **Food**: Small Plates, Mains, Desserts.
+- **Ordering**: item options, special requests, table or pickup, tips, and **promo / reward codes at checkout** (checked by the server).
+- **Live order tracking**: Received → Mixing → Ready → Served, plus feedback and order-again.
+- **Book a space**: Bar Counter, Lounge Booth, Rooftop, VIP Room or the full venue. Slots that are already taken are blocked across devices.
+- **Moments (socials)**: guests post photos from their night with a caption. Everyone can like them (double-tap works too), with Latest and Top views. Photos are resized on the phone before upload.
+- **Rizz Rewards**: every app order is tracked to the guest's account. Each 1 spent on served orders earns 1 point, and each points milestone automatically issues a **personal one-time reward code**. A wallet shows the guest's codes, points and stats.
+- **Ad spaces**: offer cards inside the home page, the menu list and the Moments feed.
 
-### Staff console (`Profile → Staff console`, or open `/#staff`)
-- **Orders**: a board with New, Preparing and Ready columns. Staff can accept or reject orders and mark them ready or served. Each ticket shows elapsed time with late warnings, plus item options and allergy notes. A **sound alert** plays when a new order comes in.
-- **Bookings**: Upcoming, Pending and All filters. Staff can confirm, decline or check guests in.
-- **Overview**: today's revenue, order count, average order, bookings, top sellers and guest ratings.
-- Default PIN: **1234**. Set `STAFF_PIN` on the server to change it.
+### Staff console (`/#staff`, default PIN `1234`)
+- **Orders**: New → Preparing → Ready board with sound alerts. Tickets show any promo code used.
+- **Bookings**: confirm, decline, check in.
+- **Promos & Rewards**: create promo codes (percent or amount off, minimum spend, uses per guest, total uses, expiry, first-order-only) and pause or resume them. Each code's redemptions are tracked. The loyalty rules (points per reward, reward value) can be edited.
+- **Ads & Slides**: create ads with a headline, sub-text, colour or photo, and a button (open a menu section, book, give a promo code, open Moments). Choose where each ad shows (Home, Menu, Book, Moments, bar TVs). Changes go live on every device instantly.
+- **Moments**: feature great photos (they lead on the TVs), hide or delete inappropriate ones.
+- **Customers**: every app user with served orders, spend, points, codes used, posts and last order. There's a top-spender leaderboard, search, and a **CSV export** for running promos (for example, texting codes to guests who haven't been in lately).
+- **Overview**: revenue, orders, average order, discounts given, promo orders, moments, bookings, top sellers, ratings.
+
+### Bar TV screens (`/#tv`)
+Open `/#tv` on a smart TV or a laptop connected to a screen. It shows full-screen rotating offers (ads placed on "Bar TVs"), guests' latest photos with featured ones first, a scrolling ticker, a clock, and a **QR code to open the app** with the WELCOME10 offer. Use `/#tv?app=https://your-app-link` to point the QR code somewhere else, such as an app download page.
 
 > Every guest phone, bar tablet and staff screen talks to the **Rizz server**, so orders and bookings sync **live across devices**.
 
@@ -46,16 +55,16 @@ Server settings (environment variables):
 |---|---|---|
 | `PORT` | `3001` | HTTP port |
 | `STAFF_PIN` | `1234` | Staff console PIN. **Change this.** |
-| `DATA_FILE` | `server/data/db.json` | Where orders and bookings are saved |
+| `DATA_FILE` | `server/data/db.json` | Where data is saved. Photos go in an `uploads/` folder next to it. |
 
 ## Backend
 
 `server/index.js` is a small Express server:
 
-- **REST API**: `POST /api/orders`, `PATCH /api/orders/:id`, `POST /api/bookings`, `PATCH /api/bookings/:id`, `GET /api/state`, `POST /api/staff/login`
-- **Realtime**: `GET /api/events` (Server-Sent Events) pushes every change to every connected device. The bar gets a chime when a new order comes in, and guests see their order and booking status update live.
+- **REST API**: orders, bookings, social posts and likes, ads, vouchers (`/api/vouchers/validate`), reward settings, customer insights, photo uploads (served from `/uploads`), and staff login
+- **Realtime**: `GET /api/events` (Server-Sent Events) pushes every change, **filtered per viewer**. Staff see everything. Guests see only their own orders, bookings and reward codes, plus public posts and ads. Other guests' bookings come through only as slot availability (no names or phone numbers). The bar gets a chime when a new order comes in, and guests see their order and booking status update live.
 - **Rules enforced on the server**: prices and totals are recalculated, table numbers are required for table service, and the same space and time can't be double-booked (bar counter and rooftop take several parties). Guests can only cancel or rate their *own* orders. Moving orders through the kitchen and confirming bookings needs a staff token from the PIN.
-- **Storage**: a JSON file with atomic writes, so there is no database to install. For heavy traffic, swap in Postgres or SQLite behind the same endpoints.
+- **Storage**: a JSON file with atomic writes, plus uploaded photos in `<data dir>/uploads`, so there is no database to install. For heavy traffic, swap in Postgres or SQLite behind the same endpoints.
 - Also serves the built web app, so one process runs everything.
 
 ### Hosting

@@ -56,6 +56,7 @@ export function OrderTracking({ nav, id }: { nav: Nav; id: string }) {
           </div>
         ))}
         <div className="summary">
+          {!!order.discount && <div className="discount"><span>Discount ({order.voucherCode})</span><span>−{money(order.discount)}</span></div>}
           <div><span>Service</span><span>{money(order.serviceFee)}</span></div>
           <div><span>Tip</span><span>{money(order.tip)}</span></div>
           <div className="summary-total"><span>Total</span><span>{money(order.total)}</span></div>

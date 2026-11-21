@@ -5,6 +5,9 @@ import { actions, run, useStore } from '../store/store';
 import { Icon } from '../components/Icon';
 import { BAR, money, seatLabel } from '../config';
 import { bookingStatusText, fmtDate } from './BookingDetail';
+import { AdsPanel, CustomersPanel, PromosPanel, SocialPanel } from './StaffMarketing';
+
+type Tab = 'orders' | 'bookings' | 'promos' | 'ads' | 'social' | 'customers' | 'overview';
 
 const COLUMNS: { s: OrderStatus; title: string; next?: OrderStatus; cta?: string }[] = [
   { s: 'new', title: 'New', next: 'preparing', cta: 'Accept & prepare' },
@@ -38,7 +41,8 @@ function useNow(ms = 15000) {
 export function Staff({ nav }: { nav: Nav }) {
   const orders = useStore((s) => s.orders);
   const bookings = useStore((s) => s.bookings);
-  const [tab, setTab] = useState<'orders' | 'bookings' | 'overview'>('orders');
+  const [tab, setTab] = useState<Tab>('orders');
+  const posts = useStore((s) => s.posts);
   const [sound, setSound] = useState(true);
   const now = useNow();
 
@@ -64,10 +68,16 @@ export function Staff({ nav }: { nav: Nav }) {
         </div>
       </header>
 
-      <div className="seg staff-tabs">
-        <button className={tab === 'orders' ? 'on' : ''} onClick={() => setTab('orders')}>Orders {newCount > 0 && <span className="badge inline">{newCount}</span>}</button>
-        <button className={tab === 'bookings' ? 'on' : ''} onClick={() => setTab('bookings')}>Bookings {pendingBookings > 0 && <span className="badge inline">{pendingBookings}</span>}</button>
-        <button className={tab === 'overview' ? 'on' : ''} onClick={() => setTab('overview')}>Overview</button>
+      <div className="chips-row staff-tabs">
+        {([
+          ['orders', '🧾 Orders', newCount], ['bookings', '📅 Bookings', pendingBookings], ['promos', '🎟️ Promos & Rewards', 0],
+          ['ads', '📣 Ads & Slides', 0], ['social', '📸 Moments', posts.length], ['customers', '👥 Customers', 0], ['overview', '📊 Overview', 0],
+        ] as [Tab, string, number][]).map(([id, label, n]) => (
+          <button key={id} className={`chip ${tab === id ? 'chip-active' : ''}`} onClick={() => setTab(id)}>
+            {label}{n > 0 && (id === 'orders' || id === 'bookings') && <span className="badge inline">{n}</span>}
+          </button>
+        ))}
+        <a className="chip" href="#tv" target="_blank" rel="noreferrer">📺 Open TV screen</a>
       </div>
 
       {orders.length === 0 && bookings.length === 0 && (
@@ -96,12 +106,19 @@ export function Staff({ nav }: { nav: Nav }) {
       )}
 
       {tab === 'bookings' && <BookingsBoard bookings={bookings} />}
+      {tab === 'promos' && <PromosPanel />}
+      {tab === 'ads' && <AdsPanel />}
+      {tab === 'social' && <SocialPanel />}
+      {tab === 'customers' && <CustomersPanel />}
 
       {tab === 'overview' && (
         <div className="overview">
           <div className="kpi"><small>Revenue today</small><strong>{money(revenue)}</strong></div>
           <div className="kpi"><small>Orders today</small><strong>{todayOrders.length}</strong></div>
           <div className="kpi"><small>Avg. order</small><strong>{money(todayOrders.length ? revenue / todayOrders.length : 0)}</strong></div>
+          <div className="kpi"><small>Discounts given today</small><strong>{money(todayOrders.reduce((s, o) => s + (o.discount ?? 0), 0))}</strong></div>
+          <div className="kpi"><small>Promo orders today</small><strong>{todayOrders.filter((o) => o.voucherCode).length}</strong></div>
+          <div className="kpi"><small>Moments posted</small><strong>{posts.length}</strong></div>
           <div className="kpi"><small>Bookings today</small><strong>{bookings.filter((b) => b.date === today && ['confirmed', 'checked-in', 'pending'].includes(b.status)).length}</strong></div>
           <div className="card span2">
             <h3>Top sellers</h3>
@@ -148,6 +165,7 @@ function OrderTicket({ o, now, cta, onNext }: { o: Order; now: number; cta?: str
         ))}
       </ul>
       {o.notes && <p className="tiny note">📝 {o.notes}</p>}
+      {o.voucherCode && <p className="tiny">🎟️ {o.voucherCode} −{money(o.discount ?? 0)}</p>}
       <div className="ticket-card-foot">
         <span className="small">{money(o.total)}</span>
         <div className="row-gap">

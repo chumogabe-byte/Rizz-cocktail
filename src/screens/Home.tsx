@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { Nav } from '../router';
-import { CATEGORIES, MENU } from '../data/menu';
+import { CATEGORIES, MENU, sectionOf } from '../data/menu';
+import { AdBanner, HeroSlider } from '../components/Promo';
+import { mediaUrl } from '../api';
 import { SPACES } from '../data/spaces';
 import { actions, cartCount, useStore } from '../store/store';
 import { Art } from '../components/Art';
@@ -23,7 +25,7 @@ export function Home({ nav }: { nav: Nav }) {
   }, [q]);
 
   const featured = MENU.filter((m) =>
-    filter === 'popular' ? m.popular : filter === 'favorites' ? favorites.includes(m.id) : m.category === 'mocktail');
+    filter === 'popular' ? m.popular : filter === 'favorites' ? favorites.includes(m.id) : sectionOf(m.category) === 'soft');
 
   return (
     <div className="screen">
@@ -65,6 +67,8 @@ export function Home({ nav }: { nav: Nav }) {
             </button>
           )}
 
+          <HeroSlider placement="home" nav={nav} />
+
           <div className="quick-actions">
             <button className="qa qa-purple" onClick={() => nav.go({ name: 'menu' })}>
               <span className="qa-emoji">🍸</span><strong>Order Drinks & Food</strong><span className="small">To your table or pickup</span>
@@ -100,6 +104,8 @@ export function Home({ nav }: { nav: Nav }) {
             </div>
           )}
 
+          <RewardsCard nav={nav} />
+
           <SectionHead title="Browse menu" action="See all" onAction={() => nav.go({ name: 'menu' })} />
           <div className="cat-grid">
             {CATEGORIES.map((c) => (
@@ -108,6 +114,10 @@ export function Home({ nav }: { nav: Nav }) {
               </button>
             ))}
           </div>
+
+          <AdBanner placement="home" nav={nav} index={1} />
+
+          <SocialStrip nav={nav} />
 
           <SectionHead title="Reserve a space" action="Book" onAction={() => nav.go({ name: 'book' })} />
           <div className="list">
@@ -130,6 +140,42 @@ export function Home({ nav }: { nav: Nav }) {
         </>
       )}
     </div>
+  );
+}
+
+function RewardsCard({ nav }: { nav: Nav }) {
+  const me = useStore((s) => s.me);
+  const settings = useStore((s) => s.settings);
+  const codes = useStore((s) => s.vouchers).filter((v) => v.source === 'reward' && v.active && v.redemptions.length === 0);
+  const pts = me?.points ?? 0;
+  const t = settings.rewardThreshold || 100;
+  return (
+    <button className="rewards-card" onClick={() => nav.go({ name: 'rewards' })}>
+      <div className="row-body">
+        <small>Rizz Rewards</small>
+        <strong>{pts} pts {codes.length > 0 && <span className="tag tag-lime">{codes.length} code{codes.length > 1 ? 's' : ''} ready</span>}</strong>
+        <span className="tiny">{t - (pts % t)} pts to your next {money(settings.rewardValue)} reward</span>
+        <div className="loyalty-bar"><span style={{ width: `${((pts % t) / t) * 100}%` }} /></div>
+      </div>
+      <span className="rewards-gift">🎁</span>
+    </button>
+  );
+}
+
+function SocialStrip({ nav }: { nav: Nav }) {
+  const posts = useStore((s) => s.posts).filter((p) => !p.hidden).slice(0, 8);
+  return (
+    <>
+      <SectionHead title="Moments at Rizz" action="Open feed" onAction={() => nav.go({ name: 'social' })} />
+      <div className="h-scroll">
+        <button className="moment-tile moment-add" onClick={() => nav.go({ name: 'social' })}><span>📸</span><small>Share yours</small></button>
+        {posts.map((p) => (
+          <button key={p.id} className="moment-tile" onClick={() => nav.go({ name: 'social' })} style={{ backgroundImage: `url("${mediaUrl(p.image)}")` }}>
+            <small>{p.author.split(' ')[0]} · ♥ {p.likes.length}</small>
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 

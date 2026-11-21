@@ -1,4 +1,4 @@
-import type { Booking, Order } from './types';
+import type { Ad, Booking, CustomerStats, Order, Post, Settings, Voucher } from './types';
 
 /**
  * Where the backend lives.
@@ -38,26 +38,49 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   return data as T;
 }
 
-export interface Snapshot { orders: Order[]; bookings: Booking[] }
+export interface Snapshot {
+  orders: Order[];
+  bookings: Booking[];
+  posts: Post[];
+  ads: Ad[];
+  vouchers: Voucher[];
+  me: CustomerStats | null;
+  settings: Settings;
+}
 
-/** Subscribe to live updates. Reconnects automatically. Returns an unsubscribe function. */
-export function subscribe(handlers: {
+type Handlers = {
   snapshot: (s: Snapshot) => void;
   order: (o: Order) => void;
   booking: (b: Booking) => void;
+  post: (p: Post) => void;
+  ads: (a: Ad[]) => void;
+  vouchers: (v: Voucher[]) => void;
+  me: (m: CustomerStats) => void;
   status: (online: boolean) => void;
-}) {
+};
+
+/** Absolute URL for an uploaded image path like /uploads/x.jpeg */
+export const mediaUrl = (p?: string) => (!p ? '' : /^https?:|^data:/.test(p) ? p : getServerUrl() + p);
+
+/**
+ * Subscribe to live updates. The server tailors the stream to the viewer:
+ * staff (token) get everything, guests (customerId) get their own orders/bookings + public content.
+ * Reconnects automatically. Returns an unsubscribe function.
+ */
+export function subscribe(who: { customerId: string; token: string | null }, h: Handlers) {
   let es: EventSource | null = null;
   let retry: ReturnType<typeof setTimeout> | undefined;
   let closed = false;
+  const qs = new URLSearchParams({ customerId: who.customerId, ...(who.token ? { token: who.token } : {}) });
 
   const open = () => {
-    es = new EventSource(getServerUrl() + '/api/events');
-    es.addEventListener('snapshot', (e) => { handlers.status(true); handlers.snapshot(JSON.parse((e as MessageEvent).data)); });
-    es.addEventListener('order', (e) => handlers.order(JSON.parse((e as MessageEvent).data)));
-    es.addEventListener('booking', (e) => handlers.booking(JSON.parse((e as MessageEvent).data)));
+    es = new EventSource(`${getServerUrl()}/api/events?${qs}`);
+    const on = <T,>(type: string, fn: (d: T) => void) => es!.addEventListener(type, (e) => fn(JSON.parse((e as MessageEvent).data)));
+    on<Snapshot>('snapshot', (d) => { h.status(true); h.snapshot(d); });
+    on('order', h.order); on('booking', h.booking); on('post', h.post);
+    on('ads', h.ads); on('vouchers', h.vouchers); on('me', h.me);
     es.onerror = () => {
-      handlers.status(false);
+      h.status(false);
       es?.close();
       if (!closed) retry = setTimeout(open, 3000);
     };

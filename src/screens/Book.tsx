@@ -5,6 +5,7 @@ import { actions, useStore } from '../store/store';
 import { Art } from '../components/Art';
 import { Icon } from '../components/Icon';
 import { Chip, Stepper, TopBar } from '../components/Layout';
+import { HeroSlider } from '../components/Promo';
 import { money } from '../config';
 
 function nextDays(n: number) {
@@ -71,6 +72,7 @@ export function Book({ nav, spaceId }: { nav: Nav; spaceId?: string }) {
   return (
     <div className="screen with-cta">
       <TopBar title="Book a space" onBack={nav.back} />
+      <HeroSlider placement="book" nav={nav} />
 
       <div className="h-scroll spaces">
         {SPACES.map((s) => (

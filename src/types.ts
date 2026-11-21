@@ -1,4 +1,7 @@
-export type Category = 'signature' | 'classic' | 'mocktail' | 'beer-wine' | 'small-plates' | 'mains' | 'desserts';
+export type Category =
+  | 'cocktails' | 'vodka' | 'gin' | 'whiskey' | 'rum' | 'tequila' | 'wine' | 'beer' | 'champagne' | 'liqueurs' | 'shots'
+  | 'soft' | 'mocktails' | 'small-plates' | 'mains' | 'desserts';
+export type Section = 'alcoholic' | 'soft' | 'food';
 
 export interface MenuItem {
   id: string;
@@ -48,6 +51,8 @@ export interface Order {
   phone?: string;
   lines: CartLine[];
   subtotal: number;
+  discount?: number;
+  voucherCode?: string;
   serviceFee: number;
   tip: number;
   total: number;
@@ -76,6 +81,7 @@ export interface Booking {
   occasion?: string;
   notes?: string;
   status: BookingStatus;
+  anon?: boolean; // other guests' bookings: only slot info is shared
 }
 
 export interface User {
@@ -83,3 +89,63 @@ export interface User {
   name: string;
   phone: string;
 }
+
+export interface Post {
+  id: string;
+  createdAt: number;
+  customerId: string;
+  author: string;
+  caption: string;
+  image: string;
+  likes: string[];
+  hidden?: boolean;
+  featured?: boolean;
+  removed?: boolean;
+}
+
+export type Placement = 'home' | 'menu' | 'book' | 'social' | 'tv';
+export interface Ad {
+  id: string;
+  title: string;
+  subtitle: string;
+  emoji: string;
+  theme: string;
+  image?: string;
+  cta: { label: string; type: 'none' | 'menu' | 'item' | 'book' | 'code' | 'social'; target: string };
+  placements: Placement[];
+  active: boolean;
+  createdAt: number;
+}
+
+export interface Voucher {
+  id: string;
+  code: string;
+  description: string;
+  kind: 'percent' | 'fixed';
+  value: number;
+  minSpend: number;
+  perCustomer?: number;
+  maxUses?: number;
+  firstOrderOnly?: boolean;
+  expiresAt?: number;
+  customerId?: string;
+  active: boolean;
+  source: 'promo' | 'reward';
+  redemptions: { customerId?: string; orderId: string; at: number }[];
+  createdAt: number;
+}
+
+export interface CustomerStats {
+  customerId: string;
+  name: string;
+  phone?: string;
+  orders: number;
+  totalOrders: number;
+  spent: number;
+  points: number;
+  lastVisit: number | null;
+  posts: number;
+  redeemed: number;
+}
+
+export interface Settings { rewardThreshold: number; rewardValue: number; pointsPerUnit: number }

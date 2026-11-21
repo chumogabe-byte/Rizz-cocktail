@@ -17,8 +17,10 @@ export function Profile({ nav }: { nav: Nav }) {
   const favs = useStore((s) => s.favorites);
   const [pin, setPin] = useState('');
   const [pinErr, setPinErr] = useState(false);
-  const spent = orders.reduce((s, o) => s + o.total, 0);
-  const points = Math.floor(spent);
+  const me = useStore((s) => s.me);
+  const threshold = useStore((s) => s.settings.rewardThreshold) || 100;
+  const spent = me?.spent ?? 0;
+  const points = me?.points ?? 0;
 
   return (
     <div className="screen">
@@ -34,14 +36,15 @@ export function Profile({ nav }: { nav: Nav }) {
         </div>
       </div>
 
-      <div className="loyalty">
-        <div><small>Rizz Rewards</small><strong>{points} pts</strong><span className="tiny">Spent {money(spent)} · 100 pts = free cocktail</span></div>
-        <div className="loyalty-bar"><span style={{ width: `${Math.min(100, points % 100)}%` }} /></div>
-      </div>
+      <button className="loyalty" onClick={() => nav.go({ name: 'rewards' })}>
+        <div><small>Rizz Rewards</small><strong>{points} pts</strong><span className="tiny">Spent {money(spent)} via the app · tap for your codes</span></div>
+        <div className="loyalty-bar"><span style={{ width: `${((points % threshold) / threshold) * 100}%` }} /></div>
+      </button>
 
       <div className="list">
         <button className="row-card" onClick={() => nav.go({ name: 'activity', tab: 'orders' })}><Icon name="receipt" /><div className="row-body"><strong>Order history</strong></div>›</button>
         <button className="row-card" onClick={() => nav.go({ name: 'activity', tab: 'bookings' })}><Icon name="calendar" /><div className="row-body"><strong>My bookings</strong></div>›</button>
+        <button className="row-card" onClick={() => nav.go({ name: 'rewards' })}><Icon name="star" /><div className="row-body"><strong>Rewards & codes</strong></div>›</button>
         <a className="row-card" href={`tel:${BAR.phone.replace(/\s/g, '')}`}><Icon name="bell" /><div className="row-body"><strong>Call the bar</strong><span className="small muted">{BAR.phone}</span></div>›</a>
       </div>
 

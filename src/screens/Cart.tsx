@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Nav } from '../router';
 import type { FulfilmentType } from '../types';
 import { getItem } from '../data/menu';
@@ -11,6 +11,10 @@ const TIPS = [0, 0.1, 0.15, 0.2];
 
 export function Cart({ nav }: { nav: Nav }) {
   const cart = useStore((s) => s.cart);
+  const appliedCode = useStore((s) => s.appliedCode);
+  const [codeInput, setCodeInput] = useState('');
+  const [promo, setPromo] = useState<{ code: string; description: string; discount: number } | null>(null);
+  const [promoErr, setPromoErr] = useState('');
   const [fulfilment, setFulfilment] = useState<FulfilmentType>('table');
   const [table, setTable] = useState('');
   const [notes, setNotes] = useState('');
@@ -19,9 +23,20 @@ export function Cart({ nav }: { nav: Nav }) {
   const [busy, setBusy] = useState(false);
 
   const subtotal = cartSubtotal(cart);
-  const fee = +(subtotal * BAR.serviceFeeRate).toFixed(2);
+  const discount = promo?.discount ?? 0;
+  const fee = +((subtotal - discount) * BAR.serviceFeeRate).toFixed(2);
   const tip = +(subtotal * tipRate).toFixed(2);
-  const total = subtotal + fee + tip;
+  const total = subtotal - discount + fee + tip;
+
+  // (Re)validate the applied code whenever it or the basket changes — the server is the source of truth.
+  useEffect(() => {
+    if (!appliedCode || subtotal === 0) { setPromo(null); return; }
+    let live = true;
+    actions.validateCode(appliedCode, subtotal)
+      .then((r) => { if (live) { setPromo(r); setPromoErr(''); } })
+      .catch((e) => { if (live) { setPromo(null); setPromoErr(`${appliedCode}: ${(e as Error).message}`); } });
+    return () => { live = false; };
+  }, [appliedCode, subtotal]);
 
   if (cart.length === 0) {
     return (
@@ -35,6 +50,7 @@ export function Cart({ nav }: { nav: Nav }) {
 
   const place = async () => {
     if (fulfilment === 'table' && !table.trim()) return setErr('Enter your table or seat number so we can find you.');
+    if (appliedCode && !promo) actions.applyCode(null);
     setBusy(true); setErr('');
     try {
       const order = await actions.placeOrder({ fulfilment, table: fulfilment === 'table' ? table.trim() : undefined, notes: notes.trim() || undefined, tip });
@@ -85,6 +101,24 @@ export function Cart({ nav }: { nav: Nav }) {
       </div>
 
       <div className="card stack">
+        <h3>🎟️ Promo or reward code</h3>
+        {appliedCode && promo ? (
+          <div className="promo-ok">
+            <div className="row-body"><strong className="code-chip">{promo.code}</strong><span className="small muted">{promo.description}</span></div>
+            <span className="price">−{money(promo.discount)}</span>
+            <button className="link small danger" onClick={() => actions.applyCode(null)}>Remove</button>
+          </div>
+        ) : (
+          <form className="row-gap" onSubmit={(e) => { e.preventDefault(); if (codeInput.trim()) { setPromoErr(''); actions.applyCode(codeInput); setCodeInput(''); } }}>
+            <input className="grow" value={codeInput} onChange={(e) => setCodeInput(e.target.value.toUpperCase())} placeholder="e.g. WELCOME10" autoCapitalize="characters" />
+            <button className="btn btn-ghost" type="submit">Apply</button>
+          </form>
+        )}
+        {promoErr && <p className="error">{promoErr}</p>}
+        <button className="link small" style={{ alignSelf: 'flex-start' }} onClick={() => nav.go({ name: 'rewards' })}>See my reward codes →</button>
+      </div>
+
+      <div className="card stack">
         <h3>Tip the team</h3>
         <div className="seg">
           {TIPS.map((t) => <button key={t} className={tipRate === t ? 'on' : ''} onClick={() => setTipRate(t)}>{t === 0 ? 'None' : `${t * 100}%`}</button>)}
@@ -93,10 +127,11 @@ export function Cart({ nav }: { nav: Nav }) {
 
       <div className="card summary">
         <div><span>Subtotal</span><span>{money(subtotal)}</span></div>
+        {discount > 0 && <div className="discount"><span>Discount ({promo?.code})</span><span>−{money(discount)}</span></div>}
         <div><span>Service ({BAR.serviceFeeRate * 100}%)</span><span>{money(fee)}</span></div>
         <div><span>Tip</span><span>{money(tip)}</span></div>
         <div className="summary-total"><span>Total</span><span>{money(total)}</span></div>
-        <p className="tiny muted">Pay at the bar or with your server. Card & mobile money accepted.</p>
+        <p className="tiny muted">Pay at the bar or with your server. Card & mobile money accepted. App orders earn Rizz Rewards points.</p>
       </div>
 
       {err && <p className="error">{err}</p>}

@@ -10,6 +10,9 @@ export type Route =
   | { name: 'booking'; id: string }
   | { name: 'activity'; tab?: 'orders' | 'bookings' }
   | { name: 'profile' }
+  | { name: 'social' }
+  | { name: 'rewards' }
+  | { name: 'tv' }
   | { name: 'staff' };
 
 export type Nav = { go: (r: Route) => void; back: () => void };
