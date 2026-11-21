@@ -486,3 +486,27 @@ select { width: 100%; background: var(--bg-2); border: 1px solid var(--line); bo
 .tv-ticker { margin: 0 -2.5vw; background: var(--purple); overflow: hidden; white-space: nowrap; padding: .9vw 0; }
 .tv-ticker-track { display: inline-flex; gap: 4vw; padding-left: 100%; animation: ticker 40s linear infinite; font-size: 1.4vw; font-weight: 700; }
 @keyframes ticker { to { transform: translateX(-100%); } }
+
+/* ---------- Menu management & offers ---------- */
+.item-art { position: relative; flex: none; }
+.item-art .art-lg, .item-art .art-xl { width: 100%; }
+.feature-card .item-art, .detail-hero .item-art { width: 100%; }
+.soldout, .offer-badge { position: absolute; left: 6px; top: 6px; font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 7px; text-transform: uppercase; letter-spacing: .04em; }
+.soldout { background: rgba(14,11,26,.85); color: var(--danger); }
+.offer-badge { background: var(--lime); color: var(--lime-ink); }
+.detail-hero .soldout, .detail-hero .offer-badge { top: auto; bottom: 18px; left: 16px; font-size: 12px; padding: 5px 10px; }
+.menu-row.is-soldout { opacity: .55; }
+.price-wrap { display: inline-flex; align-items: baseline; gap: 6px; }
+.price-was { color: var(--muted); font-size: 12px; }
+.offer-card { flex: none; width: 128px; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 18px; background: var(--card); border: 1px solid rgba(212,255,90,.3); text-align: left; scroll-snap-align: start; }
+.offer-card .art-md { width: 110px; height: 96px; }
+.row-gap.wrap { flex-wrap: wrap; }
+.menu-admin { display: flex; flex-direction: column; gap: 8px; }
+.menu-admin-row { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
+.menu-admin-row.off { opacity: .6; }
+.switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; min-width: 96px; }
+.switch input { width: 18px; height: 18px; accent-color: var(--lime); }
+.opt-editor { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); margin-top: 8px; }
+.icon-btn.sm-icon { width: 40px; height: 44px; font-size: 14px; color: var(--muted); }
+.thumb { width: 84px; height: 84px; object-fit: cover; border-radius: 16px; }
+@media (max-width: 600px) { .menu-admin-row { flex-wrap: wrap; } }

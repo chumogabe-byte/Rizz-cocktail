@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
-import type { Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
+import type { MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
 import { api, subscribe, type Snapshot } from '../api';
+import seedMenu from '../../server/seed-menu.json';
 
 /**
  * App state.
@@ -21,6 +22,7 @@ export interface State {
   vouchers: Voucher[];
   me: CustomerStats | null;
   settings: Settings;
+  menu: MenuItem[];
   online: boolean;
   loaded: boolean;
   staffToken: string | null;
@@ -45,6 +47,7 @@ function load(): State {
     appliedCode: saved.appliedCode ?? null,
     orders: [], bookings: [], posts: [], ads: [], vouchers: [], me: null,
     settings: { rewardThreshold: 100, rewardValue: 15, pointsPerUnit: 1 },
+    menu: seedMenu as MenuItem[],
     online: false, loaded: false,
     staffToken: token,
     toast: null,
@@ -82,6 +85,7 @@ export function connect() {
     ads: (ads) => set({ ads }),
     vouchers: (vouchers) => set({ vouchers }),
     me: (me) => set({ me }),
+    menu: (menu) => set({ menu }),
     status: (online) => { if (online !== state.online) set({ online }); },
   });
 }
@@ -200,6 +204,13 @@ export const actions = {
   async saveAd(ad: Partial<Ad> & { image?: string; removeImage?: boolean }, id?: string) {
     await api<Ad>(id ? `/api/ads/${id}` : '/api/ads', { method: id ? 'PATCH' : 'POST', ...staff(), body: ad });
   },
+  async saveMenuItem(item: Omit<Partial<MenuItem>, 'offerPrice'> & { image?: string; removeImage?: boolean; offerPrice?: number | null }, id?: string) {
+    await api<MenuItem>(id ? `/api/menu/${id}` : '/api/menu', { method: id ? 'PATCH' : 'POST', ...staff(), body: item });
+  },
+  async categoryOffer(category: string, percent: number | null) {
+    return api<{ updated: number }>('/api/menu/offer', { method: 'POST', ...staff(), body: { category, percent } });
+  },
+  async deleteMenuItem(id: string) { await api(`/api/menu/${id}`, { method: 'DELETE', ...staff() }); },
   async deleteAd(id: string) { await api(`/api/ads/${id}`, { method: 'DELETE', ...staff() }); },
   async createVoucher(v: Partial<Voucher>) { await api('/api/vouchers', { method: 'POST', ...staff(), body: v }); },
   async setVoucherActive(id: string, active: boolean) { await api(`/api/vouchers/${id}`, { method: 'PATCH', ...staff(), body: { active } }); },

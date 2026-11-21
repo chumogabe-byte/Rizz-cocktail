@@ -43,7 +43,9 @@ const DEFAULT_VOUCHERS = [
     perCustomer: 1, firstOrderOnly: true, active: true, source: 'promo', redemptions: [], createdAt: now0 },
 ];
 
-let db = { orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
+const SEED_MENU = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed-menu.json'), 'utf8'));
+
+let db = { menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
 try {
   db = { ...db, ...JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) };
   db.settings = { ...DEFAULT_SETTINGS, ...db.settings };
@@ -83,6 +85,24 @@ function saveImage(dataUrl) {
 function removeImage(url) {
   if (url?.startsWith('/uploads/')) fs.rm(path.join(UPLOAD_DIR, path.basename(url)), () => {});
 }
+
+// ---------- menu pricing (mirrors src/data/menu.ts unitPrice) ----------
+/** Unit price for an item given the chosen option names, in option order. Returns null if a choice is invalid. */
+function priceFor(item, choiceNames = []) {
+  const basePrice = item.offerPrice ?? item.price;
+  let base = basePrice, extra = 0;
+  const groups = item.options || [];
+  for (let i = 0; i < groups.length; i++) {
+    const c = groups[i].choices.find((x) => x.name === choiceNames[i]) ?? groups[i].choices[0];
+    if (!c) continue;
+    if (c.name.startsWith('Double')) base = basePrice * 2;
+    else if (c.name.startsWith('Bottle (')) base = 0;
+    extra += c.price;
+  }
+  return round(base + extra);
+}
+const CATEGORY_IDS = ['cocktails', 'vodka', 'gin', 'whiskey', 'rum', 'tequila', 'wine', 'beer', 'champagne', 'liqueurs', 'shots',
+  'soft', 'mocktails', 'small-plates', 'mains', 'desserts'];
 
 const ORDER_STATUSES = ['new', 'preparing', 'ready', 'served', 'cancelled'];
 const BOOKING_STATUSES = ['pending', 'confirmed', 'declined', 'checked-in', 'cancelled'];
@@ -157,6 +177,7 @@ function viewFor(c) {
     vouchers: visibleVouchers(c),
     me: c.customerId ? customerStats(c.customerId) : null,
     settings: db.settings,
+    menu: db.menu,
   };
 }
 function send(c, type, payload) { c.res.write(`event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`); }
@@ -279,6 +300,14 @@ app.post('/api/orders', (req, res) => {
       choices: Array.isArray(l.choices) ? l.choices.slice(0, 10).map((c) => str(c, 60)).filter(Boolean) : [], note: str(l.note) }))
     .filter((l) => l.itemId && l.name);
   if (!clean.length) return res.status(400).json({ error: 'Order has no items' });
+  // Prices come from the bar's menu, never from the phone.
+  for (const l of clean) {
+    const item = db.menu.find((m) => m.id === l.itemId);
+    if (!item) return res.status(400).json({ error: `${l.name} is no longer on the menu — please remove it from your order.` });
+    if (item.available === false) return res.status(400).json({ error: `Sorry, ${item.name} is sold out right now.` });
+    l.name = item.name;
+    l.unitPrice = priceFor(item, l.choices);
+  }
   const fulfilment = b.fulfilment === 'pickup' ? 'pickup' : 'table';
   const table = fulfilment === 'table' ? str(b.table, 20) : undefined;
   if (fulfilment === 'table' && !table) return res.status(400).json({ error: 'Table number required' });
@@ -419,6 +448,74 @@ app.delete('/api/posts/:id', (req, res) => {
   removeImage(p.image);
   save();
   for (const c of clients) send(c, 'post', { id: p.id, removed: true });
+  res.json({ ok: true });
+});
+
+// ---------- menu management ----------
+function cleanItem(b, prev = {}) {
+  const opts = Array.isArray(b.options) ? b.options.slice(0, 6).map((o) => ({
+    label: str(o.label, 30) || 'Option',
+    choices: (Array.isArray(o.choices) ? o.choices : []).slice(0, 12)
+      .map((c) => ({ name: str(c.name, 40), price: num(c.price, 0, 100000, 0) })).filter((c) => c.name),
+  })).filter((o) => o.choices.length) : prev.options;
+  const grad = Array.isArray(b.gradient) && b.gradient.length === 2 && b.gradient.every((g) => /^#[0-9a-f]{3,8}$/i.test(g)) ? b.gradient : prev.gradient ?? ['#7C5CFF', '#2A1B6B'];
+  const offer = b.offerPrice === null || b.offerPrice === '' ? undefined : b.offerPrice !== undefined ? num(b.offerPrice, 0, 1e6, undefined) : prev.offerPrice;
+  return {
+    name: str(b.name, 80) ?? prev.name,
+    category: CATEGORY_IDS.includes(b.category) ? b.category : prev.category ?? 'cocktails',
+    price: b.price !== undefined ? num(b.price, 0, 1e6, 0) : prev.price ?? 0,
+    offerPrice: offer,
+    description: str(b.description, 300) ?? prev.description ?? '',
+    emoji: str(b.emoji, 8) ?? prev.emoji ?? '🍸',
+    gradient: grad,
+    tags: Array.isArray(b.tags) ? b.tags.map((t) => str(t, 20)).filter(Boolean).slice(0, 4) : prev.tags,
+    abv: str(b.abv, 10) ?? prev.abv,
+    popular: typeof b.popular === 'boolean' ? b.popular : prev.popular ?? false,
+    available: typeof b.available === 'boolean' ? b.available : prev.available ?? true,
+    options: opts?.length ? opts : undefined,
+  };
+}
+function pushMenu() { for (const c of clients) send(c, 'menu', db.menu); }
+
+app.post('/api/menu', requireStaff, (req, res) => {
+  const item = { id: `item-${crypto.randomBytes(4).toString('hex')}`, ...cleanItem(req.body || {}) };
+  if (!item.name) return res.status(400).json({ error: 'Name required' });
+  if (req.body.image) item.image = saveImage(req.body.image) || undefined;
+  db.menu.unshift(item);
+  save(); pushMenu();
+  res.status(201).json(item);
+});
+app.patch('/api/menu/:id', requireStaff, (req, res) => {
+  const i = db.menu.findIndex((m) => m.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: 'Not found' });
+  const prev = db.menu[i];
+  const next = { ...prev, ...cleanItem(req.body || {}, prev) };
+  if (next.offerPrice === undefined) delete next.offerPrice;
+  if (req.body.image) { removeImage(prev.image); next.image = saveImage(req.body.image) || undefined; }
+  if (req.body.removeImage) { removeImage(prev.image); delete next.image; }
+  db.menu[i] = next;
+  save(); pushMenu();
+  res.json(next);
+});
+// Bulk offer: set (percent) or clear (percent = null) offer prices for a whole category
+app.post('/api/menu/offer', requireStaff, (req, res) => {
+  const { category, percent } = req.body || {};
+  const pct = percent == null ? null : num(percent, 1, 90, null);
+  let n = 0;
+  for (const m of db.menu) {
+    if (category !== 'all' && m.category !== category) continue;
+    if (pct == null) delete m.offerPrice; else m.offerPrice = round(m.price * (1 - pct / 100));
+    n++;
+  }
+  save(); pushMenu();
+  res.json({ updated: n });
+});
+app.delete('/api/menu/:id', requireStaff, (req, res) => {
+  const item = db.menu.find((m) => m.id === req.params.id);
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  removeImage(item.image);
+  db.menu = db.menu.filter((m) => m.id !== item.id);
+  save(); pushMenu();
   res.json({ ok: true });
 });
 

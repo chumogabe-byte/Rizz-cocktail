@@ -14,6 +14,9 @@ export interface MenuItem {
   tags?: string[];
   abv?: string;
   popular?: boolean;
+  offerPrice?: number; // special price shown as an offer
+  available?: boolean; // false = sold out
+  image?: string;
   options?: { label: string; choices: { name: string; price: number }[] }[];
 }
 

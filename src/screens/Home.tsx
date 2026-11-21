@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Nav } from '../router';
-import { CATEGORIES, MENU, sectionOf } from '../data/menu';
+import { CATEGORIES, sectionOf } from '../data/menu';
+import { ItemArt, Price } from '../components/ItemBits';
 import { AdBanner, HeroSlider } from '../components/Promo';
 import { mediaUrl } from '../api';
 import { SPACES } from '../data/spaces';
@@ -13,6 +14,8 @@ import { BAR, money } from '../config';
 export function Home({ nav }: { nav: Nav }) {
   const user = useStore((s) => s.user);
   const cart = useStore((s) => s.cart);
+  const MENU = useStore((s) => s.menu);
+  const offers = MENU.filter((m) => m.available !== false && m.offerPrice != null && m.offerPrice < m.price);
   const favorites = useStore((s) => s.favorites);
   const activeOrder = useStore((s) => s.orders.find((o) => o.customerId === s.customerId && ['new', 'preparing', 'ready'].includes(o.status)));
   const [q, setQ] = useState('');
@@ -51,9 +54,9 @@ export function Home({ nav }: { nav: Nav }) {
           {results.length === 0 && <p className="muted center pad">No matches for “{q}”.</p>}
           {results.map((m) => (
             <button key={m.id} className="row-card" onClick={() => nav.go({ name: 'item', id: m.id })}>
-              <Art emoji={m.emoji} gradient={m.gradient} size="sm" />
+              <ItemArt item={m} size="sm" />
               <div className="row-body"><strong>{m.name}</strong><span className="muted small clamp1">{m.description}</span></div>
-              <span className="price">{money(m.price)}</span>
+              <Price item={m} />
             </button>
           ))}
         </div>
@@ -90,18 +93,33 @@ export function Home({ nav }: { nav: Nav }) {
             <div className="h-scroll">
               {featured.map((m) => (
                 <div key={m.id} className="feature-card" onClick={() => nav.go({ name: 'item', id: m.id })} role="button" tabIndex={0}>
-                  <Art emoji={m.emoji} gradient={m.gradient} size="lg" />
+                  <ItemArt item={m} size="lg" />
                   <button className={`fav ${favorites.includes(m.id) ? 'fav-on' : ''}`} aria-label="Favourite"
                     onClick={(e) => { e.stopPropagation(); actions.toggleFavorite(m.id); }}>
                     <Icon name="heart" size={18} fill={favorites.includes(m.id)} />
                   </button>
                   <div className="feature-info">
                     <strong>{m.name}</strong>
-                    <div className="feature-meta"><span className="small muted">{m.tags?.[0] ?? CATEGORIES.find(c => c.id === m.category)?.label}</span><span className="price">{money(m.price)}</span></div>
+                    <div className="feature-meta"><span className="small muted">{m.tags?.[0] ?? CATEGORIES.find(c => c.id === m.category)?.label}</span><Price item={m} /></div>
                   </div>
                 </div>
               ))}
             </div>
+          )}
+
+          {offers.length > 0 && (
+            <>
+              <SectionHead title="🔥 Today's offers" action="Menu" onAction={() => nav.go({ name: 'menu' })} />
+              <div className="h-scroll">
+                {offers.map((m) => (
+                  <button key={m.id} className="offer-card" onClick={() => nav.go({ name: 'item', id: m.id })}>
+                    <ItemArt item={m} size="md" />
+                    <strong className="clamp1">{m.name}</strong>
+                    <Price item={m} />
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
           <RewardsCard nav={nav} />

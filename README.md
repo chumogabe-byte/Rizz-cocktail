@@ -22,7 +22,8 @@ The design takes cues from modern nightlife apps: a dark UI with electric purple
 ### Staff console (`/#staff`, default PIN `1234`)
 - **Orders**: New → Preparing → Ready board with sound alerts. Tickets show any promo code used.
 - **Bookings**: confirm, decline, check in.
-- **Promos & Rewards**: create promo codes (percent or amount off, minimum spend, uses per guest, total uses, expiry, first-order-only) and pause or resume them. Each code's redemptions are tracked. The loyalty rules (points per reward, reward value) can be edited.
+- **Menu & Offers**: add, edit and delete menu items, including name, category, price, **offer price**, description, photo or emoji and colour, tags, ABV, a "Hot" flag, and option groups. Presets cover spirit single/double/bottle, glass/bottle and spirit upgrades, or build custom groups. One tap marks an item **sold out**. **Quick category offer** puts a whole section (or the whole menu) at X% off and clears it again later. Offers show with the old price crossed out, an "Offer" badge, and a "Today's offers" row on the home screen. Changes go live on every device instantly.
+- **Promo codes & Rewards**: create promo codes (percent or amount off, minimum spend, uses per guest, total uses, expiry, first-order-only) and pause or resume them. Each code's redemptions are tracked. The loyalty rules (points per reward, reward value) can be edited.
 - **Ads & Slides**: create ads with a headline, sub-text, colour or photo, and a button (open a menu section, book, give a promo code, open Moments). Choose where each ad shows (Home, Menu, Book, Moments, bar TVs). Changes go live on every device instantly.
 - **Moments**: feature great photos (they lead on the TVs), hide or delete inappropriate ones.
 - **Customers**: every app user with served orders, spend, points, codes used, posts and last order. There's a top-spender leaderboard, search, and a **CSV export** for running promos (for example, texting codes to guests who haven't been in lately).
@@ -63,7 +64,7 @@ Server settings (environment variables):
 
 - **REST API**: orders, bookings, social posts and likes, ads, vouchers (`/api/vouchers/validate`), reward settings, customer insights, photo uploads (served from `/uploads`), and staff login
 - **Realtime**: `GET /api/events` (Server-Sent Events) pushes every change, **filtered per viewer**. Staff see everything. Guests see only their own orders, bookings and reward codes, plus public posts and ads. Other guests' bookings come through only as slot availability (no names or phone numbers). The bar gets a chime when a new order comes in, and guests see their order and booking status update live.
-- **Rules enforced on the server**: prices and totals are recalculated, table numbers are required for table service, and the same space and time can't be double-booked (bar counter and rooftop take several parties). Guests can only cancel or rate their *own* orders. Moving orders through the kitchen and confirming bookings needs a staff token from the PIN.
+- **Rules enforced on the server**: item prices come from the server's menu (a phone can't send its own prices), sold-out items are refused, totals and discounts are recalculated, table numbers are required for table service, and the same space and time can't be double-booked (bar counter and rooftop take several parties). Guests can only cancel or rate their *own* orders. Moving orders through the kitchen and confirming bookings needs a staff token from the PIN.
 - **Storage**: a JSON file with atomic writes, plus uploaded photos in `<data dir>/uploads`, so there is no database to install. For heavy traffic, swap in Postgres or SQLite behind the same endpoints.
 - Also serves the built web app, so one process runs everything.
 
@@ -98,7 +99,7 @@ The APK is a debug-signed build, fine for installing directly on phones and tabl
 
 ## Customising
 - **Bar details, currency, service fee, staff PIN**: `src/config.ts`
-- **Menu**: `src/data/menu.ts`
+- **Menu**: edit it live in the staff console (Menu & Offers). The starting menu is `server/seed-menu.json`, and categories live in `src/data/menu.ts`.
 - **Bookable spaces, time slots, occasions**: `src/data/spaces.ts`
 - **Photos**: the `<Art>` component takes an `img` prop. Swap the gradient placeholders for real photography.
 - **Theme colours**: CSS variables at the top of `src/styles.css`

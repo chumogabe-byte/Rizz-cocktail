@@ -6,8 +6,9 @@ import { Icon } from '../components/Icon';
 import { BAR, money, seatLabel } from '../config';
 import { bookingStatusText, fmtDate } from './BookingDetail';
 import { AdsPanel, CustomersPanel, PromosPanel, SocialPanel } from './StaffMarketing';
+import { MenuPanel } from './StaffMenu';
 
-type Tab = 'orders' | 'bookings' | 'promos' | 'ads' | 'social' | 'customers' | 'overview';
+type Tab = 'orders' | 'bookings' | 'menu' | 'promos' | 'ads' | 'social' | 'customers' | 'overview';
 
 const COLUMNS: { s: OrderStatus; title: string; next?: OrderStatus; cta?: string }[] = [
   { s: 'new', title: 'New', next: 'preparing', cta: 'Accept & prepare' },
@@ -70,8 +71,8 @@ export function Staff({ nav }: { nav: Nav }) {
 
       <div className="chips-row staff-tabs">
         {([
-          ['orders', '🧾 Orders', newCount], ['bookings', '📅 Bookings', pendingBookings], ['promos', '🎟️ Promos & Rewards', 0],
-          ['ads', '📣 Ads & Slides', 0], ['social', '📸 Moments', posts.length], ['customers', '👥 Customers', 0], ['overview', '📊 Overview', 0],
+          ['orders', '🧾 Orders', newCount], ['bookings', '📅 Bookings', pendingBookings], ['menu', '🍸 Menu & Offers', 0], ['promos', '🎟️ Promo codes & Rewards', 0],
+          ['ads', '📣 Ads & Hero slides', 0], ['social', '📸 Moments', posts.length], ['customers', '👥 Customers', 0], ['overview', '📊 Overview', 0],
         ] as [Tab, string, number][]).map(([id, label, n]) => (
           <button key={id} className={`chip ${tab === id ? 'chip-active' : ''}`} onClick={() => setTab(id)}>
             {label}{n > 0 && (id === 'orders' || id === 'bookings') && <span className="badge inline">{n}</span>}
@@ -106,6 +107,7 @@ export function Staff({ nav }: { nav: Nav }) {
       )}
 
       {tab === 'bookings' && <BookingsBoard bookings={bookings} />}
+      {tab === 'menu' && <MenuPanel />}
       {tab === 'promos' && <PromosPanel />}
       {tab === 'ads' && <AdsPanel />}
       {tab === 'social' && <SocialPanel />}

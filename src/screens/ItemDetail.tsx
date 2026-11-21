@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import type { Nav } from '../router';
-import { CATEGORIES, getItem, unitPrice } from '../data/menu';
+import { CATEGORIES, unitPrice } from '../data/menu';
+import { ItemArt, Price } from '../components/ItemBits';
 import { actions, useStore } from '../store/store';
-import { Art } from '../components/Art';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Layout';
 import { money } from '../config';
 
 export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
-  const item = getItem(id);
+  const item = useStore((s) => s.menu.find((m) => m.id === id));
   const fav = useStore((s) => s.favorites.includes(id));
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState('');
@@ -28,7 +28,7 @@ export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
   return (
     <div className="screen detail">
       <div className="detail-hero">
-        <Art emoji={item.emoji} gradient={item.gradient} size="xl" />
+        <ItemArt item={item} size="xl" />
         <div className="detail-hero-bar">
           <button className="icon-btn glass" onClick={nav.back} aria-label="Back"><Icon name="back" /></button>
           <button className={`icon-btn glass ${fav ? 'fav-on' : ''}`} onClick={() => actions.toggleFavorite(id)} aria-label="Favourite">
@@ -44,6 +44,7 @@ export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
           {item.popular && <span><Icon name="star" size={14} fill /> Crowd favourite</span>}
           {item.tags?.map((t) => <span key={t}>{t}</span>)}
         </div>
+        <Price item={item} />
         <p className="muted">{item.description}</p>
 
         {item.options?.map((o, oi) => (
@@ -67,8 +68,8 @@ export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
       </div>
       <div className="sticky-cta">
         <Stepper value={qty} onChange={setQty} min={1} />
-        <button className="btn btn-primary grow" onClick={add} disabled={added}>
-          {added ? <><Icon name="check" size={18} /> Added</> : <>Add · {money(unit * qty)}</>}
+        <button className="btn btn-primary grow" onClick={add} disabled={added || item.available === false}>
+          {item.available === false ? 'Sold out' : added ? <><Icon name="check" size={18} /> Added</> : <>Add · {money(unit * qty)}</>}
         </button>
       </div>
     </div>
