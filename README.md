@@ -141,7 +141,7 @@ This works on any Docker host, such as Railway, Fly.io, Render or a VPS. Mount a
 
 The `android/` folder is a native Android project (Capacitor) that wraps the same app.
 
-**Get the APKs:** every push triggers the **Build Android apps** GitHub Action. Open the repo's **Actions** tab, select the latest run, and download the **rizz-apps** artifact. It contains `rizz-cocktail-bar.apk` (guests) and `rizz-admin.apk` (management). Pushing a tag like `v1.0.0` also attaches the APK to a GitHub Release.
+**Get the APKs:** every push triggers the **Build Android apps** GitHub Action. Open the repo's **Actions** tab, select the latest run, and download **rizz-admin-apk** (management app) and/or **rizz-guest-apk** (guest app). To build only one, use **Run workflow** and pick `admin` or `guest`. Pushing a tag like `v1.0.0` also attaches the APK to a GitHub Release.
 
 **Install:** copy `rizz-cocktail-bar.apk` to an Android phone, open it, and allow "install unknown apps". On first launch it asks for the **bar server address**, for example `https://rizz.example.com` or `192.168.1.20:3001` on the bar's Wi-Fi. This can be changed later under Profile → Server.
 

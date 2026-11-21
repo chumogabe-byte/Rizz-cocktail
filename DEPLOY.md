@@ -31,7 +31,7 @@ So guests are never asked for a server address:
 
 1. In GitHub open the repo → **Settings → Secrets and variables → Actions → Variables → New repository variable**.
 2. Name: `RIZZ_API_URL`. Value: your Render address, e.g. `https://rizz-cocktail-bar.onrender.com` (no trailing slash).
-3. Go to **Actions → Build Android apps → Run workflow**. Both APKs in the run's **Artifacts** (`rizz-apps`: guest + admin) have the address built in.
+3. Go to **Actions → Build Android apps → Run workflow**. The APKs in the run's **Artifacts** (`rizz-admin-apk`, `rizz-guest-apk`) have the address built in.
 
 (The web app needs nothing. It is served by the same server, so guests can also just open the URL in a browser.)
 

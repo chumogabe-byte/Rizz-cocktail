@@ -10,6 +10,11 @@ on:
         description: "Server address baked into both apps (e.g. https://rizz.example.com). Leave blank to use the RIZZ_API_URL variable, or ask on first launch."
         required: false
         default: ''
+      apps:
+        description: "Which app(s) to build"
+        type: choice
+        options: [both, admin, guest]
+        default: both
 
 permissions:
   contents: write
@@ -19,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VITE_API_URL: ${{ github.event.inputs.api_url || vars.RIZZ_API_URL }}
+      APPS: ${{ github.event.inputs.apps || 'both' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,10 +43,13 @@ jobs:
 
       # ---------- Rizz (guest app) ----------
       - name: Build guest web app
+        if: env.APPS != 'admin'
         run: npm run build:consumer
       - name: Sync guest Android project
+        if: env.APPS != 'admin'
         run: npx cap sync android
       - name: Build guest APK
+        if: env.APPS != 'admin'
         working-directory: android
         run: |
           chmod +x gradlew
@@ -49,27 +58,38 @@ jobs:
 
       # ---------- Rizz Admin (management app) ----------
       - name: Build admin web app
+        if: env.APPS != 'guest'
         run: npm run build:admin
       - name: Sync admin Android project
+        if: env.APPS != 'guest'
         run: RIZZ_APP=admin npx cap sync android
       - name: Build admin APK
+        if: env.APPS != 'guest'
         working-directory: android-admin
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
           cp app/build/outputs/apk/debug/app-debug.apk ../rizz-admin.apk
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Rizz Admin APK
+        if: env.APPS != 'guest'
+        uses: actions/upload-artifact@v4
         with:
-          name: rizz-apps
-          path: |
-            rizz-cocktail-bar.apk
-            rizz-admin.apk
+          name: rizz-admin-apk
+          path: rizz-admin.apk
+
+      - name: Upload Rizz guest APK
+        if: env.APPS != 'admin'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rizz-guest-apk
+          path: rizz-cocktail-bar.apk
 
       - name: Attach to release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          fail_on_unmatched_files: false
           files: |
             rizz-cocktail-bar.apk
             rizz-admin.apk
