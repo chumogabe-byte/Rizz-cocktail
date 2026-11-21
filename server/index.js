@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CALLBACK_SECRET, friendlyResult, mpesaInfo, normalizePhone, parseCallback, stkPush, stkQuery } from './mpesa.js';
+import { CALLBACK_SECRET, PUBLIC_URL, friendlyResult, mpesaInfo, normalizePhone, parseCallback, stkPush, stkQuery } from './mpesa.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
@@ -846,6 +846,8 @@ if (fs.existsSync(dist)) {
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Rizz backend listening on http://0.0.0.0:${PORT}`);
+  console.log(`Rizz backend listening on http://0.0.0.0:${PORT}${PUBLIC_URL ? ` — public URL ${PUBLIC_URL}` : ''}`);
+  console.log(`M-Pesa: ${mpesaInfo().mode} mode, till ${mpesaInfo().till}${mpesaInfo().mode !== 'mock' && !PUBLIC_URL ? ' — WARNING: no public URL, payment callbacks cannot arrive' : ''}`);
+  console.log(`Data: ${DATA_FILE}`);
   if (STAFF_PIN === '1234') console.log('⚠  Using default staff PIN 1234 — set STAFF_PIN in production.');
 });

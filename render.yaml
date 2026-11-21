@@ -1,0 +1,35 @@
+# Render Blueprint — one web service (API + realtime + web app) with a persistent disk.
+# Render → New → Blueprint → pick this repo & branch. You'll be asked for the values marked sync: false.
+services:
+  - type: web
+    name: rizz-cocktail-bar
+    runtime: docker
+    plan: starter            # needed for the persistent disk (free instances lose data and sleep)
+    region: frankfurt        # closest Render region to Nairobi
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: rizz-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATA_FILE
+        value: /data/db.json
+      - key: STAFF_PIN
+        sync: false          # choose the staff console PIN
+      # ---- M-Pesa (leave MPESA_ENV=mock until you have Daraja keys) ----
+      - key: MPESA_ENV
+        value: mock          # mock | sandbox | production
+      - key: MPESA_TILL
+        value: "1750964"
+      - key: MPESA_TRANSACTION_TYPE
+        value: CustomerBuyGoodsOnline
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_SHORTCODE
+        sync: false          # store number linked to the till, if Safaricom gave you one (else leave blank)
+      # MPESA_CALLBACK_URL is filled in automatically from Render's public URL (RENDER_EXTERNAL_URL)

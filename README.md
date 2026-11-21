@@ -106,6 +106,8 @@ If Safaricom's confirmation can't reach the server (for example, a server on the
 - Also serves the built web app, so one process runs everything.
 
 ### Hosting
+**Step-by-step guide: [DEPLOY.md](DEPLOY.md)** (Render Blueprint via `render.yaml`, Railway, or any Docker VPS).
+
 A `Dockerfile` is included:
 
 ```bash

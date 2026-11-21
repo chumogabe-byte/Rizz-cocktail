@@ -31,7 +31,11 @@ const SHORTCODE = process.env.MPESA_SHORTCODE || (SANDBOX ? '174379' : TILL);
 const PASSKEY = process.env.MPESA_PASSKEY || '';
 const TX_TYPE = process.env.MPESA_TRANSACTION_TYPE || 'CustomerBuyGoodsOnline';
 const PARTY_B = process.env.MPESA_PARTY_B || (TX_TYPE === 'CustomerBuyGoodsOnline' ? (SANDBOX ? SHORTCODE : TILL) : SHORTCODE);
-const CALLBACK_BASE = (process.env.MPESA_CALLBACK_URL || '').replace(/\/+$/, '');
+/** Public address of this server. Set MPESA_CALLBACK_URL, or let the host provide it (Render / Railway / Fly). */
+export const PUBLIC_URL = (process.env.MPESA_CALLBACK_URL || process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL
+  || (process.env.RAILWAY_PUBLIC_DOMAIN && `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`)
+  || (process.env.FLY_APP_NAME && `https://${process.env.FLY_APP_NAME}.fly.dev`) || '').replace(/\/+$/, '');
+const CALLBACK_BASE = PUBLIC_URL;
 /** Secret path segment so random callers can't fake payment confirmations. */
 export const CALLBACK_SECRET = process.env.MPESA_CALLBACK_SECRET || crypto.createHash('sha256').update(`rizz:${KEY}:${PASSKEY}:${SHORTCODE}`).digest('hex').slice(0, 24);
 

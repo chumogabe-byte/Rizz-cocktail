@@ -3,3 +3,7 @@ dist
 android
 .git
 server/data
+.env
+.env.*
+!.env.example
+*.apk
