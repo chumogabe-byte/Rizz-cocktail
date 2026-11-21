@@ -8,6 +8,7 @@ import { Icon } from '../components/Icon';
 import { Chip, TopBar } from '../components/Layout';
 import { AdBanner, HeroSlider } from '../components/Promo';
 import { money } from '../config';
+import { flyToCart } from '../fx';
 
 export function Menu({ nav, initial }: { nav: Nav; initial?: Category }) {
   const [section, setSection] = useState<Section>(initial ? sectionOf(initial) : 'alcoholic');
@@ -67,6 +68,7 @@ export function Menu({ nav, initial }: { nav: Nav; initial?: Category }) {
                 onClick={(e) => {
                   e.stopPropagation();
                   if (m.options?.length) return nav.go({ name: 'item', id: m.id });
+                  flyToCart(e.currentTarget, m.emoji);
                   actions.addToCart({ itemId: m.id, name: m.name, unitPrice: unitPrice(m, []), qty: 1, choices: [] });
                 }}>
                 <Icon name="plus" size={18} />

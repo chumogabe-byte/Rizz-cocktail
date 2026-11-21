@@ -7,6 +7,8 @@ export const BAR = {
   phone: '+254 700 000 000',
   currency: 'KSh',
   serviceFeeRate: 0.05,
+  // Lipa na M-Pesa Buy Goods till (the server's MPESA_TILL takes precedence when connected)
+  mpesaTill: '1750964',
 };
 
 export const money = (n: number) =>

@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Nav } from '../router';
 import { CATEGORIES, sectionOf } from '../data/menu';
 import { ItemArt, Price } from '../components/ItemBits';
 import { AdBanner, HeroSlider } from '../components/Promo';
 import { mediaUrl } from '../api';
+import { CountUp } from '../components/CountUp';
+import { confetti } from '../fx';
 import { eventBg, fmtDay, priceFrom, upcoming } from './Events';
 import { SPACES } from '../data/spaces';
 import { actions, cartCount, useStore } from '../store/store';
@@ -192,11 +194,16 @@ function RewardsCard({ nav }: { nav: Nav }) {
   const codes = useStore((s) => s.vouchers).filter((v) => v.source === 'reward' && v.active && v.redemptions.length === 0);
   const pts = me?.points ?? 0;
   const t = settings.rewardThreshold || 100;
+  const prevCodes = useRef<number | null>(null);
+  useEffect(() => {
+    if (prevCodes.current !== null && codes.length > prevCodes.current) confetti({ emojis: ['🎁', '🎟️', '✨'] });
+    prevCodes.current = codes.length;
+  }, [codes.length]);
   return (
     <button className="rewards-card" onClick={() => nav.go({ name: 'rewards' })}>
       <div className="row-body">
         <small>Rizz Rewards</small>
-        <strong>{pts} pts {codes.length > 0 && <span className="tag tag-lime">{codes.length} code{codes.length > 1 ? 's' : ''} ready</span>}</strong>
+        <strong><CountUp value={pts} /> pts {codes.length > 0 && <span className="tag tag-lime">{codes.length} code{codes.length > 1 ? 's' : ''} ready</span>}</strong>
         <span className="tiny">{t - (pts % t)} pts to your next {money(settings.rewardValue)} reward</span>
         <div className="loyalty-bar"><span style={{ width: `${((pts % t) / t) * 100}%` }} /></div>
       </div>

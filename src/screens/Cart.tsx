@@ -6,6 +6,7 @@ import { actions, cartSubtotal, useStore } from '../store/store';
 import { Art } from '../components/Art';
 import { Empty, Stepper, TopBar } from '../components/Layout';
 import { isValidKePhone } from '../components/MpesaPay';
+import { CountUp } from '../components/CountUp';
 import { BAR, money } from '../config';
 
 const TIPS = [0, 0.1, 0.15, 0.2];
@@ -135,7 +136,7 @@ export function Cart({ nav }: { nav: Nav }) {
           <label className="field"><span>M-Pesa number — you'll get a PIN prompt after placing the order</span>
             <input inputMode="tel" value={mpesaPhone} onChange={(e) => { setMpesaPhone(e.target.value); setErr(''); }} placeholder="0712 345 678" />
           </label>
-        ) : <p className="tiny muted">Pay your server or at the bar by card, cash or M-Pesa till.</p>}
+        ) : <p className="tiny muted">Pay your server or at the bar by card, cash, or Lipa na M-Pesa → Buy Goods → Till <b>{BAR.mpesaTill}</b>.</p>}
       </div>
 
       <div className="card stack">
@@ -150,7 +151,7 @@ export function Cart({ nav }: { nav: Nav }) {
         {discount > 0 && <div className="discount"><span>Discount ({promo?.code})</span><span>−{money(discount)}</span></div>}
         <div><span>Service ({BAR.serviceFeeRate * 100}%)</span><span>{money(fee)}</span></div>
         <div><span>Tip</span><span>{money(tip)}</span></div>
-        <div className="summary-total"><span>Total</span><span>{money(total)}</span></div>
+        <div className="summary-total"><span>Total</span><span><CountUp value={total} format={(n) => money(Math.round(n))} duration={500} /></span></div>
         <p className="tiny muted">App orders earn Rizz Rewards points.</p>
       </div>
 

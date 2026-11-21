@@ -14,6 +14,7 @@ export function Welcome() {
 
   return (
     <div className="welcome">
+      <div className="bubbles" aria-hidden>{Array.from({ length: 18 }, (_, i) => <span key={i} style={{ ['--i' as string]: i }} />)}</div>
       <div className="welcome-mosaic" aria-hidden>
         {['🍸', '🥃', '🍹', '🍾', '🍋', '🎶'].map((e, i) => (
           <div key={i} className={`mosaic-tile t${i}`}><span>{e}</span></div>

@@ -6,6 +6,7 @@ import { Stepper } from '../components/Layout';
 import { money } from '../config';
 import { eventBg, fmtWhen } from './Events';
 import { isValidKePhone } from '../components/MpesaPay';
+import { confetti } from '../fx';
 
 export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
   const e = useStore((s) => s.events.find((x) => x.id === id));
@@ -20,12 +21,14 @@ export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
   const total = e.ticketTypes.reduce((s, t) => s + t.price * (qty[t.id] || 0), 0);
   const count = Object.values(qty).reduce((a, b) => a + b, 0);
   const past = (e.endsAt || e.startsAt) < Date.now();
+  const paidEvent = e.ticketTypes.some((t) => t.price > 0);
 
   const buy = async () => {
     if (total > 0 && payNow && !isValidKePhone(phone)) return setErr('Enter your M-Pesa number, e.g. 0712 345 678.');
     setBusy(true); setErr('');
     try {
       const t = await actions.buyTickets(e.id, Object.entries(qty).filter(([, q]) => q > 0).map(([typeId, q]) => ({ typeId, qty: q })));
+      confetti({ emojis: ['🎟️', '🎉', '🪩', '✨'] });
       if (total > 0 && payNow) await actions.payMpesa('ticket', t.id, phone).catch(() => {});
       nav.go({ name: 'tickets' });
     } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
@@ -77,7 +80,7 @@ export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
             {payNow && <label className="field"><span>M-Pesa number</span><input inputMode="tel" value={phone} onChange={(x) => { setPhone(x.target.value); setErr(''); }} placeholder="0712 345 678" /></label>}
           </div>
         )}
-        <p className="tiny muted">{total > 0 ? (payNow ? "Your seats are held while you approve the M-Pesa prompt. Your QR tickets appear in My tickets — they're marked Paid the moment M-Pesa confirms." : 'Your tickets are reserved instantly. Pay at the door or bar — show the QR codes in My tickets.') + ' Paid tickets earn Rizz Rewards points.' : 'Free RSVP — show your QR code at the door to skip the queue.'}</p>
+        <p className="tiny muted">{total > 0 ? (payNow ? "Your seats are held while you approve the M-Pesa prompt. Your QR tickets appear in My tickets — they're marked Paid the moment M-Pesa confirms." : 'Your tickets are reserved instantly. Pay at the door or bar — show the QR codes in My tickets.') + ' Paid tickets earn Rizz Rewards points.' : count > 0 || !paidEvent ? 'Free RSVP — show your QR code at the door to skip the queue.' : 'Choose your tickets above, then pay with M-Pesa or at the door.'}</p>
         {err && <p className="error">{err}</p>}
       </div>
       {!past && (

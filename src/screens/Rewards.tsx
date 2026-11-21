@@ -2,6 +2,7 @@ import type { Nav } from '../router';
 import { actions, showToast, useStore } from '../store/store';
 import { Empty, TopBar } from '../components/Layout';
 import { money } from '../config';
+import { CountUp } from '../components/CountUp';
 
 export function Rewards({ nav }: { nav: Nav }) {
   const me = useStore((s) => s.me);
@@ -26,7 +27,7 @@ export function Rewards({ nav }: { nav: Nav }) {
 
       <div className="loyalty big">
         <small>Your points</small>
-        <strong>{pts}</strong>
+        <strong><CountUp value={pts} /></strong>
         <div className="loyalty-bar"><span style={{ width: `${((pts % t) / t) * 100}%` }} /></div>
         <span className="tiny">{t - (pts % t)} pts until your next {money(settings.rewardValue)} reward code</span>
       </div>

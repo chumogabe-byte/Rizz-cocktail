@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { initFx } from './fx';
 import type { Nav, Route } from './router';
 import { actions, connect, useStore } from './store/store';
 import { Icon } from './components/Icon';
@@ -37,24 +38,28 @@ export default function App() {
   const loaded = useStore((s) => s.loaded);
   const toast = useStore((s) => s.toast);
 
-  useEffect(() => { connect(); }, []);
+  useEffect(() => { connect(); initFx(); }, []);
+  // Direction of the last navigation, for page transitions
+  const dir = useRef<'push' | 'pop' | 'tab'>('tab');
   const [stack, setStack] = useState<Route[]>(() => [initialRoute()]);
   const route = stack[stack.length - 1];
 
   // Integrate with the browser/phone back button.
   useEffect(() => {
-    const onPop = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+    const onPop = () => { dir.current = 'pop'; setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)); };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   const go = useCallback((r: Route) => {
     history.pushState(null, '');
+    dir.current = 'push';
     setStack((s) => [...s, r]);
   }, []);
   // Bottom-nav tabs replace the stack instead of piling up history.
   const switchTab = (r: Route) => {
     if (r.name !== 'home' && stack.length === 1) history.pushState(null, '');
+    dir.current = 'tab';
     setStack(r.name === 'home' ? [r] : [{ name: 'home' }, r]);
   };
   const back = useCallback(() => history.back(), []);
@@ -70,12 +75,15 @@ export default function App() {
   if (!user) return <div className="app"><Welcome /></div>;
 
   const showNav = ['home', 'menu', 'events', 'book', 'social', 'profile'].includes(route.name);
+  const tabIdx = TABS.findIndex((t) => t.route.name === route.name);
+  const pageKey = `${stack.length}-${route.name}-${'id' in route ? route.id : ''}-${'category' in route ? route.category ?? '' : ''}`;
 
   return (
     <div className="app">
       {!online && <OfflineBar loaded={loaded} />}
       {toast && <div className="toast">{toast}</div>}
       <main className={showNav ? 'has-nav' : ''}>
+        <div key={pageKey} className={`page page-${dir.current}`}>
         {route.name === 'home' && <Home nav={nav} />}
         {route.name === 'menu' && <Menu key={route.category ?? 'all'} nav={nav} initial={route.category} />}
         {route.name === 'item' && <ItemDetail key={route.id} nav={nav} id={route.id} />}
@@ -90,9 +98,11 @@ export default function App() {
         {route.name === 'events' && <Events nav={nav} />}
         {route.name === 'event' && <EventDetail key={route.id} nav={nav} id={route.id} />}
         {route.name === 'tickets' && <MyTickets nav={nav} />}
+        </div>
       </main>
       {showNav && (
-        <nav className="bottom-nav">
+        <nav className="bottom-nav" style={{ ['--tab' as string]: tabIdx }}>
+          {tabIdx >= 0 && <span className="nav-pill" aria-hidden />}
           {TABS.map((t) => (
             <button key={t.label} className={route.name === t.route.name ? 'on' : ''} onClick={() => switchTab(t.route)} aria-label={t.label}>
               <Icon name={t.icon} size={22} />

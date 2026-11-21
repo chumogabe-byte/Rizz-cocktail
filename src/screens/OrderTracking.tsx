@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { confetti } from '../fx';
 import type { Nav } from '../router';
 import type { OrderStatus } from '../types';
 import { actions, run, useStore } from '../store/store';
@@ -21,6 +22,12 @@ export function OrderTracking({ nav, id }: { nav: Nav; id: string }) {
   const order = useStore((s) => s.orders.find((o) => o.id === id));
   const [face, setFace] = useState<number | null>(null);
   const [likes, setLikes] = useState<string[]>([]);
+  const prevStatus = useRef(order?.status);
+  useEffect(() => {
+    if (order && prevStatus.current && prevStatus.current !== order.status && (order.status === 'served' || order.status === 'ready'))
+      confetti({ count: order.status === 'served' ? 80 : 40, emojis: order.status === 'served' ? ['🥂', '🍸', '🎉'] : ['🛎️', '✨'] });
+    prevStatus.current = order?.status;
+  }, [order?.status]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!order) return null;
 
   const idx = STEPS.findIndex((x) => x.s === order.status);

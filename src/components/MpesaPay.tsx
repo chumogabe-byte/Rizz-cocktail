@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { confetti } from '../fx';
 import type { Payment } from '../types';
 import { actions, useStore } from '../store/store';
-import { money } from '../config';
+import { BAR, money } from '../config';
 
 export const isValidKePhone = (p: string) => /^(?:\+?254|0)?[17]\d{8}$/.test(p.replace(/[\s-]/g, ''));
 
@@ -15,6 +16,7 @@ export function MpesaPay({ kind, refId, amount, payment, title = 'Pay with M-Pes
 }) {
   const user = useStore((s) => s.user);
   const mode = useStore((s) => s.mpesa?.mode);
+  const till = useStore((s) => s.mpesa?.till) || BAR.mpesaTill;
   const [phone, setPhone] = useState(payment?.phone ? '0' + payment.phone.slice(3) : user?.phone || '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -27,7 +29,11 @@ export function MpesaPay({ kind, refId, amount, payment, title = 'Pay with M-Pes
     const t = setInterval(() => { actions.paymentStatus(id).catch(() => {}); }, 4000);
     return () => clearInterval(t);
   }, [status, payment?.paymentId]);
-  useEffect(() => { if (status === 'paid') onPaid?.(); }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+  const prev = useRef(status);
+  useEffect(() => {
+    if (status === 'paid' && prev.current === 'pending') { confetti({ emojis: ['💚', '✅', '🍸', '🥂'] }); onPaid?.(); }
+    prev.current = status;
+  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const send = async () => {
     if (!isValidKePhone(phone)) return setErr('Enter your Safaricom number, e.g. 0712 345 678');
@@ -53,7 +59,7 @@ export function MpesaPay({ kind, refId, amount, payment, title = 'Pay with M-Pes
         <div className="mpesa-spinner" />
         <div className="row-body">
           <strong>Check your phone 📲</strong>
-          <span className="small">Enter your M-Pesa PIN to pay {money(Math.ceil(amount))} to Rizz.</span>
+          <span className="small">Enter your M-Pesa PIN to pay {money(Math.ceil(amount))} to <b>Rizz · Till {till}</b>.</span>
           <span className="tiny muted">Sent to {payment?.phone ? '0' + payment.phone.slice(3) : phone}. This updates automatically.</span>
         </div>
       </div>
@@ -67,13 +73,14 @@ export function MpesaPay({ kind, refId, amount, payment, title = 'Pay with M-Pes
         <strong>{title}</strong>
         <span className="price">{money(Math.ceil(amount))}</span>
       </div>
+      <div className="till-line">Buy Goods · Till No. <b>{till}</b></div>
       {status === 'failed' && <p className="error">{payment?.message || 'Payment failed.'} Try again below.</p>}
       <div className="row-gap">
         <input className="grow" inputMode="tel" value={phone} onChange={(e) => { setPhone(e.target.value); setErr(''); }} placeholder="0712 345 678" />
         <button className="btn btn-mpesa" onClick={send} disabled={busy}>{busy ? 'Sending…' : status === 'failed' ? 'Retry' : 'Pay now'}</button>
       </div>
       {err && <p className="error">{err}</p>}
-      <p className="tiny muted">You'll get an M-Pesa prompt on this phone — enter your PIN to confirm.{mode === 'mock' ? ' (Test mode: no real money moves. Numbers ending 000 simulate a failed payment.)' : ''}</p>
+      <p className="tiny muted">You'll get an M-Pesa prompt on this phone — enter your PIN to confirm. Prefer to pay manually? Use Lipa na M-Pesa → Buy Goods → Till {till} and show the staff your confirmation SMS.{mode === 'mock' ? ' (Test mode: no real money moves. Numbers ending 000 simulate a failed payment.)' : ''}</p>
     </div>
   );
 }

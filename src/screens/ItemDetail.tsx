@@ -6,6 +6,7 @@ import { actions, useStore } from '../store/store';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Layout';
 import { money } from '../config';
+import { flyToCart } from '../fx';
 
 export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
   const item = useStore((s) => s.menu.find((m) => m.id === id));
@@ -18,7 +19,8 @@ export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
 
   const unit = unitPrice(item, sel);
 
-  const add = () => {
+  const add = (e: React.MouseEvent<HTMLButtonElement>) => {
+    flyToCart(e.currentTarget, item.emoji);
     const choices = item.options?.map((o, i) => o.choices[sel[i]].name) ?? [];
     actions.addToCart({ itemId: item.id, name: item.name, unitPrice: unit, qty, choices, note: note.trim() || undefined });
     setAdded(true);

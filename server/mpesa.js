@@ -9,10 +9,11 @@
  *
  * Env:
  *   MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET   – from your Daraja app
- *   MPESA_SHORTCODE                             – Paybill or HO/store number used to sign requests
+ *   MPESA_TILL                                  – Buy Goods till that receives the money (default 1750964, Rizz)
+ *   MPESA_SHORTCODE                             – Store / Head-Office number linked to the till, used to sign requests.
+ *                                                 Safaricom gives this with the Lipa na M-Pesa Online passkey; defaults to the till.
  *   MPESA_PASSKEY                               – Lipa na M-Pesa Online passkey
- *   MPESA_TRANSACTION_TYPE                      – CustomerPayBillOnline (Paybill, default) or CustomerBuyGoodsOnline (Till)
- *   MPESA_PARTY_B                               – Till number for Buy Goods (defaults to the shortcode)
+ *   MPESA_TRANSACTION_TYPE                      – CustomerBuyGoodsOnline (Till, default) or CustomerPayBillOnline (Paybill)
  *   MPESA_CALLBACK_URL                          – public HTTPS base URL of this server, e.g. https://rizz.example.com
  *   MPESA_BASE_URL                              – optional override of the Daraja host (used by tests)
  */
@@ -22,15 +23,19 @@ const ENV = process.env.MPESA_ENV || (process.env.MPESA_CONSUMER_KEY ? 'sandbox'
 const BASE = process.env.MPESA_BASE_URL || (ENV === 'production' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke');
 const KEY = process.env.MPESA_CONSUMER_KEY || '';
 const SECRET = process.env.MPESA_CONSUMER_SECRET || '';
-const SHORTCODE = process.env.MPESA_SHORTCODE || '174379'; // Daraja sandbox default
+/** Rizz's Buy Goods till — shown to guests and used as the receiving party. */
+export const TILL = process.env.MPESA_TILL || '1750964';
+// The Daraja sandbox only knows its test shortcode 174379, so sandbox calls use that for both sides.
+const SANDBOX = ENV !== 'production';
+const SHORTCODE = process.env.MPESA_SHORTCODE || (SANDBOX ? '174379' : TILL);
 const PASSKEY = process.env.MPESA_PASSKEY || '';
-const TX_TYPE = process.env.MPESA_TRANSACTION_TYPE || 'CustomerPayBillOnline';
-const PARTY_B = process.env.MPESA_PARTY_B || SHORTCODE;
+const TX_TYPE = process.env.MPESA_TRANSACTION_TYPE || 'CustomerBuyGoodsOnline';
+const PARTY_B = process.env.MPESA_PARTY_B || (TX_TYPE === 'CustomerBuyGoodsOnline' ? (SANDBOX ? SHORTCODE : TILL) : SHORTCODE);
 const CALLBACK_BASE = (process.env.MPESA_CALLBACK_URL || '').replace(/\/+$/, '');
 /** Secret path segment so random callers can't fake payment confirmations. */
 export const CALLBACK_SECRET = process.env.MPESA_CALLBACK_SECRET || crypto.createHash('sha256').update(`rizz:${KEY}:${PASSKEY}:${SHORTCODE}`).digest('hex').slice(0, 24);
 
-export const mpesaInfo = () => ({ mode: ENV, shortcode: ENV === 'mock' ? null : SHORTCODE, callbackConfigured: !!CALLBACK_BASE });
+export const mpesaInfo = () => ({ mode: ENV, till: TILL, type: TX_TYPE === 'CustomerBuyGoodsOnline' ? 'till' : 'paybill', shortcode: ENV === 'mock' ? null : SHORTCODE, callbackConfigured: !!CALLBACK_BASE });
 
 /** 0712345678 / +254712345678 / 712345678 → 254712345678 (Safaricom 07xx and 01xx numbers). */
 export function normalizePhone(input) {

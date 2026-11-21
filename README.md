@@ -21,6 +21,13 @@ The design takes cues from modern nightlife apps: a dark UI with electric purple
 - **Rizz Rewards**: every app order is tracked to the guest's account. Each 1 spent on served orders earns 1 point, and each points milestone automatically issues a **personal one-time reward code**. A wallet shows the guest's codes, points and stats.
 - **Ad spaces**: offer cards inside the home page, the menu list and the Moments feed.
 
+### Motion & interactions
+- **Scroll effects**: cards and rows glide in with a stagger as they enter the screen. Hero art and event or item photos move with a parallax depth effect. The Home headline drifts and fades as you scroll. Headers turn frosted glass after scrolling. A gradient progress bar runs along the top of long pages.
+- **Touch and pointer**: event tiles, hero slides, offer and reward cards tilt in 3D with a moving glare under the finger or mouse. Buttons ripple when tapped.
+- **Delight**: added drinks **fly into the cart** and the cart bounces. **Confetti** marks a successful M-Pesa payment, buying tickets, an order coming out (ready or served) and a new reward code. Points and totals count up. Offer prices glow, and hero slides have a light sweep and timed progress dots.
+- **Navigation**: pages slide in and out like a native app, and a glowing pill springs between bottom-bar tabs. Cocktail bubbles rise and a floating mosaic moves on the welcome screen.
+- **Accessibility**: everything switches off automatically when the phone's *Reduce motion* setting is on.
+
 ### Staff console (`/#staff`, default PIN `1234`)
 - **Orders**: New → Preparing → Ready board with sound alerts. Tickets show any promo code used.
 - **Bookings**: confirm, decline, check in.
@@ -63,7 +70,7 @@ Server settings (environment variables):
 
 ## M-Pesa payments
 
-Guests can pay for **orders** and **event tickets** with **M-Pesa Express (STK Push)**. They choose M-Pesa at checkout, confirm their Safaricom number, and approve the PIN prompt on their phone. The order or ticket switches to **Paid** live, with the M-Pesa receipt number, on the guest's phone and the staff console. Guests can also choose **Pay at the bar / door**, and staff mark those paid (cash or card).
+Guests can pay for **orders** and **event tickets** with **M-Pesa Express (STK Push)** to the Rizz **Buy Goods Till 1750964**. They choose M-Pesa at checkout, confirm their Safaricom number, and approve the PIN prompt on their phone. The order or ticket switches to **Paid** live, with the M-Pesa receipt number, on the guest's phone and the staff console. Guests can also choose **Pay at the bar / door**, and staff mark those paid (cash or card).
 
 - **Checkout and tickets**: an M-Pesa / Pay at bar choice. The prompt is sent the moment the order or reservation is made.
 - **Retries**: failed or cancelled payments show a clear reason (wrong PIN, insufficient balance, cancelled, phone unreachable) and can be retried, including with a different number.
@@ -81,7 +88,7 @@ Guests can pay for **orders** and **event tickets** with **M-Pesa Express (STK P
 ### Going live
 1. Create an app at **developer.safaricom.co.ke** with **M-Pesa Express**, and get your consumer key and secret.
 2. Apply to Safaricom for **Lipa na M-Pesa Online** on your Paybill or Till to get the **passkey** (sandbox uses shortcode `174379` and the passkey shown on the Daraja simulator page).
-3. Host the server on **HTTPS** and set the variables in `.env.example`: `MPESA_ENV`, `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL` (your server's public address), plus `MPESA_TRANSACTION_TYPE=CustomerBuyGoodsOnline` and `MPESA_PARTY_B=<till>` if you use a Till.
+3. Host the server on **HTTPS** and set the variables in `.env.example`: `MPESA_ENV=production`, `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL` (your server's public address). Payments go to the **Buy Goods Till 1750964** by default (`MPESA_TILL`). If Safaricom gave you a separate **Store number** with the passkey, set it as `MPESA_SHORTCODE`; otherwise the till number is used.
 4. Restart the server. The staff header should now say **Sandbox** or **Live**.
 
 If Safaricom's confirmation can't reach the server (for example, a server on the bar's local Wi-Fi), the app falls back to asking Daraja for the payment status, so payments still complete. Only the receipt number is missing in that case.
