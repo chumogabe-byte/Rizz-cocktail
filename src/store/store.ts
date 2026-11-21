@@ -1,37 +1,45 @@
 import { useSyncExternalStore } from 'react';
 import type { Booking, BookingStatus, CartLine, Order, OrderStatus, User } from '../types';
-import { BAR } from '../config';
+import { api, subscribe, type Snapshot } from '../api';
 
 /**
- * Lightweight persisted store.
- *
- * Data lives in localStorage and is synced live between tabs/windows via the
- * `storage` event, so a customer tab and a staff console tab on the same device
- * update each other instantly. Swap `persist`/`load` for API calls to connect a
- * real backend (see README).
+ * App state.
+ *  - Orders & bookings come from the backend and are kept live via Server-Sent Events,
+ *    so every phone, tablet and staff screen sees the same data instantly.
+ *  - User, cart, favourites and the device's customer id stay on the device.
  */
 export interface State {
   user: User | null;
+  customerId: string;
   cart: CartLine[];
+  favorites: string[];
   orders: Order[];
   bookings: Booking[];
-  favorites: string[];
-  staffUnlocked: boolean;
+  online: boolean;
+  loaded: boolean;
+  staffToken: string | null;
+  toast: string | null;
 }
 
-const KEY = 'rizz-bar-state-v1';
-const SHARED_KEYS: (keyof State)[] = ['orders', 'bookings'];
+const KEY = 'rizz-bar-device-v2';
+const TOKEN_KEY = 'rizz-staff-token';
 
-const initial: State = { user: null, cart: [], orders: [], bookings: [], favorites: [], staffUnlocked: false };
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36));
 
 function load(): State {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return { ...initial, ...JSON.parse(raw), staffUnlocked: false };
-  } catch {
-    /* ignore */
-  }
-  return initial;
+  let saved: Partial<State> = {};
+  let token: string | null = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { /* ignore */ }
+  try { token = sessionStorage.getItem(TOKEN_KEY); } catch { /* ignore */ }
+  return {
+    user: saved.user ?? null,
+    customerId: saved.customerId || newId(),
+    cart: saved.cart ?? [],
+    favorites: saved.favorites ?? [],
+    orders: [], bookings: [], online: false, loaded: false,
+    staffToken: token,
+    toast: null,
+  };
 }
 
 let state: State = load();
@@ -39,11 +47,9 @@ const listeners = new Set<() => void>();
 
 function persist() {
   try {
-    const { staffUnlocked: _ignored, ...rest } = state;
-    localStorage.setItem(KEY, JSON.stringify(rest));
-  } catch {
-    /* storage may be unavailable (private mode) */
-  }
+    const { user, customerId, cart, favorites } = state;
+    localStorage.setItem(KEY, JSON.stringify({ user, customerId, cart, favorites }));
+  } catch { /* ignore */ }
 }
 
 function set(patch: Partial<State>) {
@@ -52,43 +58,49 @@ function set(patch: Partial<State>) {
   listeners.forEach((l) => l());
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
-    if (e.key !== KEY || !e.newValue) return;
-    try {
-      const incoming = JSON.parse(e.newValue) as State;
-      const patch: Partial<State> = {};
-      SHARED_KEYS.forEach((k) => ((patch as Record<string, unknown>)[k] = incoming[k]));
-      state = { ...state, ...patch };
-      listeners.forEach((l) => l());
-    } catch {
-      /* ignore */
-    }
+const upsert = <T extends { id: string }>(list: T[], item: T) =>
+  list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [item, ...list];
+
+// ---- live connection ----
+let unsubscribe: (() => void) | null = null;
+export function connect() {
+  unsubscribe?.();
+  unsubscribe = subscribe({
+    snapshot: (s: Snapshot) => set({ orders: s.orders, bookings: s.bookings, loaded: true }),
+    order: (o) => set({ orders: upsert(state.orders, o) }),
+    booking: (b) => set({ bookings: upsert(state.bookings, b) }),
+    status: (online) => { if (online !== state.online) set({ online }); },
   });
 }
 
 export function useStore<T>(selector: (s: State) => T): T {
   return useSyncExternalStore(
-    (cb) => {
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
+    (cb) => { listeners.add(cb); return () => listeners.delete(cb); },
     () => selector(state),
   );
 }
 
 export const getState = () => state;
 
-const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-const shortCode = (prefix: string) => `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+export function showToast(msg: string) {
+  clearTimeout(toastTimer);
+  set({ toast: msg });
+  toastTimer = setTimeout(() => set({ toast: null }), 3500);
+}
+/** Fire-and-forget an async action, surfacing any error as a toast. */
+export const run = (p: Promise<unknown>) => {
+  p.catch((e) => {
+    const msg = (e as Error).message;
+    // Server restarted / token expired → send staff back to the PIN screen.
+    if (msg === 'Staff login required') actions.lockStaff();
+    showToast(msg);
+  });
+};
 
 export const actions = {
-  login(user: User) {
-    set({ user });
-  },
-  logout() {
-    set({ user: null, cart: [] });
-  },
+  login(user: User) { set({ user }); },
+  logout() { set({ user: null, cart: [] }); },
 
   toggleFavorite(id: string) {
     const f = state.favorites;
@@ -98,97 +110,60 @@ export const actions = {
   addToCart(line: Omit<CartLine, 'key'>) {
     const key = `${line.itemId}|${line.choices.join(',')}|${line.note ?? ''}`;
     const existing = state.cart.find((l) => l.key === key);
-    if (existing) {
-      set({ cart: state.cart.map((l) => (l.key === key ? { ...l, qty: l.qty + line.qty } : l)) });
-    } else {
-      set({ cart: [...state.cart, { ...line, key }] });
-    }
+    set({ cart: existing
+      ? state.cart.map((l) => (l.key === key ? { ...l, qty: l.qty + line.qty } : l))
+      : [...state.cart, { ...line, key }] });
   },
   setQty(key: string, qty: number) {
     set({ cart: qty <= 0 ? state.cart.filter((l) => l.key !== key) : state.cart.map((l) => (l.key === key ? { ...l, qty } : l)) });
   },
-  clearCart() {
-    set({ cart: [] });
-  },
+  clearCart() { set({ cart: [] }); },
 
-  placeOrder(input: Pick<Order, 'fulfilment' | 'table' | 'notes' | 'tip'>): Order {
-    const subtotal = cartSubtotal(state.cart);
-    const serviceFee = +(subtotal * BAR.serviceFeeRate).toFixed(2);
-    const now = Date.now();
-    const order: Order = {
-      id: uid(),
-      code: shortCode('RZ'),
-      createdAt: now,
-      updatedAt: now,
-      customer: state.user?.name ?? 'Guest',
-      phone: state.user?.phone,
-      lines: state.cart,
-      subtotal,
-      serviceFee,
-      tip: input.tip,
-      total: +(subtotal + serviceFee + input.tip).toFixed(2),
-      fulfilment: input.fulfilment,
-      table: input.table,
-      notes: input.notes,
-      status: 'new',
-    };
-    set({ orders: [order, ...state.orders], cart: [] });
+  async placeOrder(input: Pick<Order, 'fulfilment' | 'table' | 'notes' | 'tip'>): Promise<Order> {
+    const order = await api<Order>('/api/orders', { method: 'POST', body: {
+      ...input, lines: state.cart, customerId: state.customerId, customer: state.user?.name, phone: state.user?.phone } });
+    set({ orders: upsert(state.orders, order), cart: [] });
     return order;
   },
-  setOrderStatus(id: string, status: OrderStatus) {
-    set({ orders: state.orders.map((o) => (o.id === id ? { ...o, status, updatedAt: Date.now() } : o)) });
+  async setOrderStatus(id: string, status: OrderStatus) {
+    const o = await api<Order>(`/api/orders/${id}`, { method: 'PATCH', token: state.staffToken, body: { status, customerId: state.customerId } });
+    set({ orders: upsert(state.orders, o) });
   },
-  rateOrder(id: string, rating: number) {
-    set({ orders: state.orders.map((o) => (o.id === id ? { ...o, rating } : o)) });
+  async rateOrder(id: string, rating: number) {
+    const o = await api<Order>(`/api/orders/${id}`, { method: 'PATCH', body: { rating, customerId: state.customerId } });
+    set({ orders: upsert(state.orders, o) });
   },
   reorder(id: string) {
     const o = state.orders.find((x) => x.id === id);
     if (o) set({ cart: o.lines.map((l) => ({ ...l })) });
   },
 
-  createBooking(b: Omit<Booking, 'id' | 'code' | 'createdAt' | 'status'>): Booking {
-    const booking: Booking = { ...b, id: uid(), code: shortCode('BK'), createdAt: Date.now(), status: 'pending' };
-    set({ bookings: [booking, ...state.bookings] });
+  async createBooking(b: Omit<Booking, 'id' | 'code' | 'createdAt' | 'status'>): Promise<Booking> {
+    const booking = await api<Booking>('/api/bookings', { method: 'POST', body: { ...b, customerId: state.customerId } });
+    set({ bookings: upsert(state.bookings, booking) });
     return booking;
   },
-  setBookingStatus(id: string, status: BookingStatus) {
-    set({ bookings: state.bookings.map((b) => (b.id === id ? { ...b, status } : b)) });
+  async setBookingStatus(id: string, status: BookingStatus) {
+    const bk = await api<Booking>(`/api/bookings/${id}`, { method: 'PATCH', token: state.staffToken, body: { status, customerId: state.customerId } });
+    set({ bookings: upsert(state.bookings, bk) });
   },
 
-  unlockStaff(pin: string) {
-    if (pin === BAR.staffPin) {
-      set({ staffUnlocked: true });
+  async unlockStaff(pin: string): Promise<boolean> {
+    try {
+      const { token } = await api<{ token: string }>('/api/staff/login', { method: 'POST', body: { pin } });
+      try { sessionStorage.setItem(TOKEN_KEY, token); } catch { /* ignore */ }
+      set({ staffToken: token });
       return true;
+    } catch {
+      return false;
     }
-    return false;
   },
   lockStaff() {
-    set({ staffUnlocked: false });
+    try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+    set({ staffToken: null });
   },
-
-  /** Seed a few demo orders/bookings so the staff console has something to show. */
-  seedDemo() {
-    const now = Date.now();
-    const today = new Date().toISOString().slice(0, 10);
-    const mk = (name: string, mins: number, status: OrderStatus, table: string, lines: [string, string, number, number][]): Order => {
-      const ls: CartLine[] = lines.map(([itemId, n, p, q]) => ({ key: itemId, itemId, name: n, unitPrice: p, qty: q, choices: [] }));
-      const subtotal = cartSubtotal(ls);
-      const serviceFee = +(subtotal * BAR.serviceFeeRate).toFixed(2);
-      return { id: uid(), code: shortCode('RZ'), createdAt: now - mins * 60000, updatedAt: now - mins * 60000, customer: name,
-        lines: ls, subtotal, serviceFee, tip: 3, total: +(subtotal + serviceFee + 3).toFixed(2), fulfilment: 'table', table, status };
-    };
-    const orders = [
-      mk('Amara', 2, 'new', '7', [['rizz-royale', 'Rizz Royale', 16, 2], ['truffle-fries', 'Truffle Parm Fries', 9, 1]]),
-      mk('Leo', 6, 'preparing', '3', [['espresso-martini', 'Espresso Martini', 15, 3]]),
-      mk('Zuri', 11, 'ready', 'Bar 2', [['burger', 'The Rizz Burger', 19, 1], ['lime-light', 'Lime Light', 15, 1]]),
-    ];
-    const bookings: Booking[] = [
-      { id: uid(), code: shortCode('BK'), createdAt: now, spaceId: 'rooftop', spaceName: 'Rooftop Terrace', date: today, time: '21:00',
-        durationHrs: 3, guests: 6, customer: 'Kai', phone: '+1 555 0199', occasion: 'Birthday', status: 'pending' },
-      { id: uid(), code: shortCode('BK'), createdAt: now, spaceId: 'lounge-booth', spaceName: 'Velvet Lounge Booth', date: today, time: '20:00',
-        durationHrs: 2, guests: 2, customer: 'Nia', phone: '+1 555 0123', occasion: 'Date night', status: 'confirmed' },
-    ];
-    set({ orders: [...orders, ...state.orders], bookings: [...bookings, ...state.bookings] });
+  async seedDemo() {
+    await api('/api/demo', { method: 'POST', token: state.staffToken });
   },
 };
 

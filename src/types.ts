@@ -43,6 +43,7 @@ export interface Order {
   code: string;
   createdAt: number;
   updatedAt: number;
+  customerId?: string;
   customer: string;
   phone?: string;
   lines: CartLine[];
@@ -63,6 +64,7 @@ export interface Booking {
   id: string;
   code: string;
   createdAt: number;
+  customerId?: string;
   spaceId: string;
   spaceName: string;
   date: string; // YYYY-MM-DD
@@ -77,6 +79,7 @@ export interface Booking {
 }
 
 export interface User {
+  // stored on the device only
   name: string;
   phone: string;
 }

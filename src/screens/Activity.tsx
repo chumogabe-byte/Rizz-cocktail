@@ -8,9 +8,9 @@ import { bookingStatusText, fmtDate } from './BookingDetail';
 
 export function Activity({ nav, tab: initial }: { nav: Nav; tab?: 'orders' | 'bookings' }) {
   const [tab, setTab] = useState(initial ?? 'orders');
-  const user = useStore((s) => s.user);
-  const orders = useStore((s) => s.orders).filter((o) => o.customer === user?.name);
-  const bookings = useStore((s) => s.bookings).filter((b) => b.customer === user?.name || (user?.phone && b.phone === user.phone));
+  const customerId = useStore((s) => s.customerId);
+  const orders = useStore((s) => s.orders).filter((o) => o.customerId === customerId);
+  const bookings = useStore((s) => s.bookings).filter((b) => b.customerId === customerId);
 
   return (
     <div className="screen">

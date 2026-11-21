@@ -1,6 +1,6 @@
 import type { Nav } from '../router';
 import { SPACES } from '../data/spaces';
-import { actions, useStore } from '../store/store';
+import { actions, run, useStore } from '../store/store';
 import { Art } from '../components/Art';
 import { Icon } from '../components/Icon';
 import { TopBar } from '../components/Layout';
@@ -43,7 +43,7 @@ export function BookingDetail({ nav, id }: { nav: Nav; id: string }) {
       <div className="row-gap">
         <button className="btn btn-primary grow" onClick={() => nav.go({ name: 'menu' })}>Pre-order drinks</button>
         {['pending', 'confirmed'].includes(b.status) && (
-          <button className="btn btn-ghost grow danger" onClick={() => actions.setBookingStatus(b.id, 'cancelled')}>Cancel</button>
+          <button className="btn btn-ghost grow danger" onClick={() => run(actions.setBookingStatus(b.id, 'cancelled'))}>Cancel</button>
         )}
       </div>
     </div>

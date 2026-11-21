@@ -16,6 +16,7 @@ export function Cart({ nav }: { nav: Nav }) {
   const [notes, setNotes] = useState('');
   const [tipRate, setTipRate] = useState(0.1);
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const subtotal = cartSubtotal(cart);
   const fee = +(subtotal * BAR.serviceFeeRate).toFixed(2);
@@ -32,10 +33,17 @@ export function Cart({ nav }: { nav: Nav }) {
     );
   }
 
-  const place = () => {
+  const place = async () => {
     if (fulfilment === 'table' && !table.trim()) return setErr('Enter your table or seat number so we can find you.');
-    const order = actions.placeOrder({ fulfilment, table: fulfilment === 'table' ? table.trim() : undefined, notes: notes.trim() || undefined, tip });
-    nav.go({ name: 'order', id: order.id });
+    setBusy(true); setErr('');
+    try {
+      const order = await actions.placeOrder({ fulfilment, table: fulfilment === 'table' ? table.trim() : undefined, notes: notes.trim() || undefined, tip });
+      nav.go({ name: 'order', id: order.id });
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -93,7 +101,7 @@ export function Cart({ nav }: { nav: Nav }) {
 
       {err && <p className="error">{err}</p>}
       <div className="sticky-cta">
-        <button className="btn btn-primary grow" onClick={place}>Place order · {money(total)}</button>
+        <button className="btn btn-primary grow" onClick={place} disabled={busy}>{busy ? 'Sending to the bar…' : <>Place order · {money(total)}</>}</button>
       </div>
     </div>
   );

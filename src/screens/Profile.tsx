@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import type { Nav } from '../router';
-import { actions, useStore } from '../store/store';
+import { actions, connect, useStore } from '../store/store';
+import { getServerUrl, setServerUrl } from '../api';
 import { Icon } from '../components/Icon';
 import { TopBar } from '../components/Layout';
 import { BAR, money } from '../config';
 
 export function Profile({ nav }: { nav: Nav }) {
   const user = useStore((s) => s.user)!;
-  const orders = useStore((s) => s.orders).filter((o) => o.customer === user.name && o.status !== 'cancelled');
-  const bookings = useStore((s) => s.bookings).filter((b) => b.customer === user.name);
+  const customerId = useStore((s) => s.customerId);
+  const online = useStore((s) => s.online);
+  const orders = useStore((s) => s.orders).filter((o) => o.customerId === customerId && o.status !== 'cancelled');
+  const bookings = useStore((s) => s.bookings).filter((b) => b.customerId === customerId);
+  const [server, setServer] = useState(getServerUrl());
+  const [saved, setSaved] = useState(false);
   const favs = useStore((s) => s.favorites);
   const [pin, setPin] = useState('');
   const [pinErr, setPinErr] = useState(false);
@@ -42,10 +47,19 @@ export function Profile({ nav }: { nav: Nav }) {
 
       <div className="card stack">
         <h3><Icon name="shield" size={16} /> Staff console</h3>
-        <p className="tiny muted">Bartenders & managers: receive orders and manage bookings. Demo PIN: {BAR.staffPin}</p>
-        <form className="row-gap" onSubmit={(e) => { e.preventDefault(); if (actions.unlockStaff(pin)) nav.go({ name: 'staff' }); else setPinErr(true); }}>
+        <p className="tiny muted">Bartenders & managers: receive orders and manage bookings.</p>
+        <form className="row-gap" onSubmit={async (e) => { e.preventDefault(); if (await actions.unlockStaff(pin)) nav.go({ name: 'staff' }); else setPinErr(true); }}>
           <input className={`grow ${pinErr ? 'invalid' : ''}`} type="password" inputMode="numeric" placeholder="PIN" value={pin} onChange={(e) => { setPin(e.target.value); setPinErr(false); }} />
           <button className="btn btn-primary" type="submit">Enter</button>
+        </form>
+      </div>
+
+      <div className="card stack">
+        <h3>Server <span className={`status ${online ? 'status-served' : 'status-cancelled'}`}>{online ? 'Connected' : 'Offline'}</span></h3>
+        <p className="tiny muted">The bar's server address. Leave blank when using the web app hosted by the bar.</p>
+        <form className="row-gap" onSubmit={(e) => { e.preventDefault(); setServerUrl(server); connect(); setSaved(true); setTimeout(() => setSaved(false), 1500); }}>
+          <input className="grow" value={server} onChange={(e) => setServer(e.target.value)} placeholder="https://rizz.example.com" inputMode="url" autoCapitalize="off" />
+          <button className="btn btn-ghost" type="submit">{saved ? '✓' : 'Save'}</button>
         </form>
       </div>
 

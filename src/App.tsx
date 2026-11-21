@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Nav, Route } from './router';
-import { actions, useStore } from './store/store';
+import { actions, connect, useStore } from './store/store';
 import { Icon } from './components/Icon';
 import { Welcome } from './screens/Welcome';
 import { Home } from './screens/Home';
@@ -26,7 +26,12 @@ const initialRoute = (): Route => (location.hash === '#staff' ? { name: 'staff' 
 
 export default function App() {
   const user = useStore((s) => s.user);
-  const staffUnlocked = useStore((s) => s.staffUnlocked);
+  const staffUnlocked = useStore((s) => !!s.staffToken);
+  const online = useStore((s) => s.online);
+  const loaded = useStore((s) => s.loaded);
+  const toast = useStore((s) => s.toast);
+
+  useEffect(() => { connect(); }, []);
   const [stack, setStack] = useState<Route[]>(() => [initialRoute()]);
   const route = stack[stack.length - 1];
 
@@ -53,7 +58,7 @@ export default function App() {
 
   if (route.name === 'staff') {
     if (!staffUnlocked) return <StaffGate />;
-    return <Staff nav={nav} />;
+    return <>{!online && <OfflineBar loaded={loaded} />}<Staff nav={nav} />{toast && <div className="toast">{toast}</div>}</>;
   }
   if (!user) return <div className="app"><Welcome /></div>;
 
@@ -61,6 +66,8 @@ export default function App() {
 
   return (
     <div className="app">
+      {!online && <OfflineBar loaded={loaded} />}
+      {toast && <div className="toast">{toast}</div>}
       <main className={showNav ? 'has-nav' : ''}>
         {route.name === 'home' && <Home nav={nav} />}
         {route.name === 'menu' && <Menu key={route.category ?? 'all'} nav={nav} initial={route.category} />}
@@ -86,6 +93,10 @@ export default function App() {
   );
 }
 
+function OfflineBar({ loaded }: { loaded: boolean }) {
+  return <div className="offline-bar">{loaded ? 'Reconnecting to the bar…' : 'Connecting to the bar…'}</div>;
+}
+
 function StaffGate() {
   const [pin, setPin] = useState('');
   const [err, setErr] = useState(false);
@@ -95,9 +106,9 @@ function StaffGate() {
         <div className="brand-mark">RIZZ<span>.</span></div>
         <h2>Staff console</h2>
         <p className="muted small">Enter the staff PIN to receive orders and manage bookings.</p>
-        <form className="stack" onSubmit={(e) => {
+        <form className="stack" onSubmit={async (e) => {
           e.preventDefault();
-          if (!actions.unlockStaff(pin)) setErr(true);
+          if (!(await actions.unlockStaff(pin))) setErr(true);
         }}>
           <input className={err ? 'invalid' : ''} autoFocus type="password" inputMode="numeric" placeholder="PIN" value={pin} onChange={(e) => { setPin(e.target.value); setErr(false); }} />
           {err && <p className="error">Wrong PIN</p>}

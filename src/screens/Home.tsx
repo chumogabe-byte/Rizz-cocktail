@@ -12,7 +12,7 @@ export function Home({ nav }: { nav: Nav }) {
   const user = useStore((s) => s.user);
   const cart = useStore((s) => s.cart);
   const favorites = useStore((s) => s.favorites);
-  const activeOrder = useStore((s) => s.orders.find((o) => o.customer === s.user?.name && ['new', 'preparing', 'ready'].includes(o.status)));
+  const activeOrder = useStore((s) => s.orders.find((o) => o.customerId === s.customerId && ['new', 'preparing', 'ready'].includes(o.status)));
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<'popular' | 'favorites' | 'zero'>('popular');
 

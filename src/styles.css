@@ -327,3 +327,7 @@ input.invalid { border-color: var(--danger); }
 /* CTA sits above the floating nav on tab screens (e.g. Book). */
 main.has-nav .sticky-cta { bottom: calc(var(--nav-h) + 12px); padding-bottom: 12px; background: linear-gradient(transparent, var(--bg) 35%); }
 main.has-nav .screen.with-cta { padding-bottom: 100px; }
+
+/* ---------- Connection + toasts ---------- */
+.offline-bar { position: sticky; top: 0; z-index: 60; text-align: center; font-size: 12.5px; font-weight: 600; padding: 8px 12px; background: rgba(251, 191, 36, 0.15); color: var(--warn); backdrop-filter: blur(10px); }
+.toast { position: fixed; left: 50%; top: 16px; transform: translateX(-50%); z-index: 100; width: min(420px, calc(100% - 32px)); padding: 12px 16px; border-radius: 14px; background: #2a1830; border: 1px solid rgba(255, 92, 122, 0.4); color: #ffd6de; font-size: 13.5px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.6); animation: fade .2s; }

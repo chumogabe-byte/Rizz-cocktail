@@ -33,6 +33,7 @@ export function Book({ nav, spaceId }: { nav: Nav; spaceId?: string }) {
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [notes, setNotes] = useState('');
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
 
   // A slot is "taken" if a confirmed/pending booking exists for the same space/date/time.
   // Bar counter & rooftop allow several parties at once.
@@ -51,13 +52,20 @@ export function Book({ nav, spaceId }: { nav: Nav; spaceId?: string }) {
     setGuests((g) => Math.min(s.capacity[1], Math.max(s.capacity[0], g)));
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!name.trim() || !phone.trim()) return setErr('Please add your name and phone so we can confirm.');
     if (guests < sp.capacity[0] || guests > sp.capacity[1]) return setErr(`${sp.name} fits ${sp.capacity[0]}–${sp.capacity[1]} guests.`);
     if (taken(time) || isPast(time)) return setErr('That time is not available — pick another slot.');
-    const b = actions.createBooking({ spaceId: sp.id, spaceName: sp.name, date, time, durationHrs: duration, guests,
-      customer: name.trim(), phone: phone.trim(), occasion: occasion || undefined, notes: notes.trim() || undefined });
-    nav.go({ name: 'booking', id: b.id });
+    setBusy(true); setErr('');
+    try {
+      const b = await actions.createBooking({ spaceId: sp.id, spaceName: sp.name, date, time, durationHrs: duration, guests,
+        customer: name.trim(), phone: phone.trim(), occasion: occasion || undefined, notes: notes.trim() || undefined });
+      nav.go({ name: 'booking', id: b.id });
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -115,7 +123,7 @@ export function Book({ nav, spaceId }: { nav: Nav; spaceId?: string }) {
 
       {err && <p className="error">{err}</p>}
       <div className="sticky-cta">
-        <button className="btn btn-lime grow" onClick={submit}>Request booking · {time}</button>
+        <button className="btn btn-lime grow" onClick={submit} disabled={busy}>{busy ? 'Sending…' : <>Request booking · {time}</>}</button>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Nav } from '../router';
 import type { Booking, Order, OrderStatus } from '../types';
-import { actions, useStore } from '../store/store';
+import { actions, run, useStore } from '../store/store';
 import { Icon } from '../components/Icon';
 import { BAR, money, seatLabel } from '../config';
 import { bookingStatusText, fmtDate } from './BookingDetail';
@@ -73,7 +73,7 @@ export function Staff({ nav }: { nav: Nav }) {
       {orders.length === 0 && bookings.length === 0 && (
         <div className="card center stack">
           <p className="muted">No orders or bookings yet. Open the app in another tab to place one — it'll appear here live.</p>
-          <button className="btn btn-ghost" onClick={actions.seedDemo}>Load demo data</button>
+          <button className="btn btn-ghost" onClick={() => run(actions.seedDemo())}>Load demo data</button>
         </div>
       )}
 
@@ -86,7 +86,7 @@ export function Staff({ nav }: { nav: Nav }) {
                 <section key={c.s} className={`kcol kcol-${c.s}`}>
                   <h3>{c.title} <span className="count">{list.length}</span></h3>
                   {list.length === 0 && <p className="tiny muted pad">Nothing here</p>}
-                  {list.map((o) => <OrderTicket key={o.id} o={o} now={now} cta={c.cta} onNext={() => c.next && actions.setOrderStatus(o.id, c.next)} />)}
+                  {list.map((o) => <OrderTicket key={o.id} o={o} now={now} cta={c.cta} onNext={() => { if (c.next) run(actions.setOrderStatus(o.id, c.next)); }} />)}
                 </section>
               );
             })}
@@ -151,7 +151,7 @@ function OrderTicket({ o, now, cta, onNext }: { o: Order; now: number; cta?: str
       <div className="ticket-card-foot">
         <span className="small">{money(o.total)}</span>
         <div className="row-gap">
-          {o.status === 'new' && <button className="btn btn-ghost sm danger" onClick={() => actions.setOrderStatus(o.id, 'cancelled')}>Reject</button>}
+          {o.status === 'new' && <button className="btn btn-ghost sm danger" onClick={() => run(actions.setOrderStatus(o.id, 'cancelled'))}>Reject</button>}
           {cta && <button className="btn btn-primary sm" onClick={onNext}>{cta}</button>}
         </div>
       </div>
@@ -204,10 +204,10 @@ function BookingsBoard({ bookings }: { bookings: Booking[] }) {
               <span className="tiny muted">{b.code}</span>
               <div className="row-gap">
                 {b.status === 'pending' && <>
-                  <button className="btn btn-ghost sm danger" onClick={() => actions.setBookingStatus(b.id, 'declined')}>Decline</button>
-                  <button className="btn btn-primary sm" onClick={() => actions.setBookingStatus(b.id, 'confirmed')}>Confirm</button>
+                  <button className="btn btn-ghost sm danger" onClick={() => run(actions.setBookingStatus(b.id, 'declined'))}>Decline</button>
+                  <button className="btn btn-primary sm" onClick={() => run(actions.setBookingStatus(b.id, 'confirmed'))}>Confirm</button>
                 </>}
-                {b.status === 'confirmed' && <button className="btn btn-lime sm" onClick={() => actions.setBookingStatus(b.id, 'checked-in')}>Check in</button>}
+                {b.status === 'confirmed' && <button className="btn btn-lime sm" onClick={() => run(actions.setBookingStatus(b.id, 'checked-in'))}>Check in</button>}
               </div>
             </div>
           </article>

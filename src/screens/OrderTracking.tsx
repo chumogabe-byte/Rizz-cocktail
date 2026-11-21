@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Nav } from '../router';
 import type { OrderStatus } from '../types';
-import { actions, useStore } from '../store/store';
+import { actions, run, useStore } from '../store/store';
 import { Icon } from '../components/Icon';
 import { Chip, TopBar } from '../components/Layout';
 import { money, seatLabel } from '../config';
@@ -63,7 +63,7 @@ export function OrderTracking({ nav, id }: { nav: Nav; id: string }) {
       </div>
 
       {order.status === 'new' && (
-        <button className="btn btn-ghost btn-block danger" onClick={() => actions.setOrderStatus(order.id, 'cancelled')}>Cancel order</button>
+        <button className="btn btn-ghost btn-block danger" onClick={() => run(actions.setOrderStatus(order.id, 'cancelled'))}>Cancel order</button>
       )}
 
       {order.status === 'served' && (
@@ -80,7 +80,7 @@ export function OrderTracking({ nav, id }: { nav: Nav; id: string }) {
               <div className="chips-wrap">
                 {LIKES.map((l) => <Chip key={l} active={likes.includes(l)} onClick={() => setLikes(likes.includes(l) ? likes.filter((x) => x !== l) : [...likes, l])}>{l}</Chip>)}
               </div>
-              <button className="btn btn-primary btn-block" disabled={face == null} onClick={() => face != null && actions.rateOrder(order.id, face)}>Submit feedback</button>
+              <button className="btn btn-primary btn-block" disabled={face == null} onClick={() => face != null && run(actions.rateOrder(order.id, face))}>Submit feedback</button>
             </>
           )}
         </div>

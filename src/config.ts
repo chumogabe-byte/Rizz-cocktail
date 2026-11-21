@@ -7,8 +7,6 @@ export const BAR = {
   phone: '+1 555 0142',
   currency: '$',
   serviceFeeRate: 0.05,
-  // Demo PIN for the staff console. Replace with real auth before going live.
-  staffPin: '1234',
 };
 
 export const money = (n: number) => `${BAR.currency}${n.toFixed(2)}`;
