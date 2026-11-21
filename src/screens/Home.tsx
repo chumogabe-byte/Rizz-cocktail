@@ -7,17 +7,19 @@ import { mediaUrl } from '../api';
 import { CountUp } from '../components/CountUp';
 import { confetti } from '../fx';
 import { eventBg, fmtDay, priceFrom, upcoming } from './Events';
-import { SPACES } from '../data/spaces';
 import { actions, cartCount, useStore } from '../store/store';
 import { Art } from '../components/Art';
 import { Icon } from '../components/Icon';
 import { Chip } from '../components/Layout';
-import { BAR, money } from '../config';
+import { money, useBar } from '../config';
 
 export function Home({ nav }: { nav: Nav }) {
   const user = useStore((s) => s.user);
   const cart = useStore((s) => s.cart);
   const MENU = useStore((s) => s.menu);
+  const spaces = useStore((s) => s.spaces);
+  const bar = useBar();
+  const home = useStore((s) => s.content?.home);
   const offers = MENU.filter((m) => m.available !== false && m.offerPrice != null && m.offerPrice < m.price);
   const favorites = useStore((s) => s.favorites);
   const activeOrder = useStore((s) => s.orders.find((o) => o.customerId === s.customerId && ['new', 'preparing', 'ready'].includes(o.status)));
@@ -38,7 +40,7 @@ export function Home({ nav }: { nav: Nav }) {
       <div className="home-head">
         <div>
           <p className="muted small">Hey {user?.name.split(' ')[0]} 👋</p>
-          <h1 className="display">What's your <span className="accent">vibe</span><br />tonight?</h1>
+          <h1 className="display">{accentHeadline(home?.headline || "What's your vibe tonight?")}</h1>
         </div>
         <div className="row-gap">
           <button className="icon-btn badge-wrap" onClick={() => nav.go({ name: 'cart' })} aria-label="Cart">
@@ -79,10 +81,10 @@ export function Home({ nav }: { nav: Nav }) {
           <HeroSlider placement="home" nav={nav} />
 
           <div className="quick-actions">
-            <button className="qa qa-purple" onClick={() => nav.go({ name: 'menu' })}>
+            <button className={`qa qa-purple ${home?.orderImage ? 'qa-photo' : ''}`} style={home?.orderImage ? { backgroundImage: `linear-gradient(180deg, rgba(20,10,60,.15), rgba(20,10,60,.85)), url("${mediaUrl(home.orderImage)}")` } : undefined} onClick={() => nav.go({ name: 'menu' })}>
               <span className="qa-emoji">🍸</span><strong>Order Drinks & Food</strong><span className="small">To your table or pickup</span>
             </button>
-            <button className="qa qa-lime" onClick={() => nav.go({ name: 'book' })}>
+            <button className={`qa qa-lime ${home?.bookImage ? 'qa-photo' : ''}`} style={home?.bookImage ? { backgroundImage: `linear-gradient(180deg, rgba(10,20,0,.1), rgba(10,20,0,.85)), url("${mediaUrl(home.bookImage)}")` } : undefined} onClick={() => nav.go({ name: 'book' })}>
               <span className="qa-emoji">📅</span><strong>Book a Space</strong><span className="small">Booths, rooftop, VIP</span>
             </button>
           </div>
@@ -147,9 +149,9 @@ export function Home({ nav }: { nav: Nav }) {
 
           <SectionHead title="Reserve a space" action="Book" onAction={() => nav.go({ name: 'book' })} />
           <div className="list">
-            {SPACES.slice(0, 3).map((s) => (
+            {spaces.filter((x) => x.active !== false).slice(0, 3).map((s) => (
               <button key={s.id} className="row-card" onClick={() => nav.go({ name: 'book', spaceId: s.id })}>
-                <Art emoji={s.emoji} gradient={s.gradient} size="sm" />
+                <Art emoji={s.emoji} gradient={s.gradient} size="sm" img={s.image ? mediaUrl(s.image) : undefined} />
                 <div className="row-body">
                   <strong>{s.name}</strong>
                   <span className="muted small"><Icon name="users" size={13} /> {s.capacity[0]}–{s.capacity[1]} guests · {s.minSpend ? `Min ${money(s.minSpend)}` : 'No minimum'}</span>
@@ -160,8 +162,8 @@ export function Home({ nav }: { nav: Nav }) {
           </div>
 
           <div className="info-card">
-            <div><Icon name="pin" size={16} /> {BAR.address}</div>
-            <div><Icon name="clock" size={16} /> Open daily {BAR.hours}</div>
+            <div><Icon name="pin" size={16} /> {bar.address}</div>
+            <div><Icon name="clock" size={16} /> Open daily {bar.hours}</div>
           </div>
         </>
       )}
@@ -227,6 +229,14 @@ function SocialStrip({ nav }: { nav: Nav }) {
       </div>
     </>
   );
+}
+
+/** Highlights "vibe" (or the last word) of the admin-editable headline. */
+function accentHeadline(text: string) {
+  const words = text.trim().split(/\s+/);
+  let i = words.findIndex((w) => /vibe/i.test(w));
+  if (i < 0) i = words.length - 1;
+  return <>{words.slice(0, i).join(' ')}{i > 0 ? ' ' : ''}<span className="accent">{words[i]}</span>{i < words.length - 1 ? ' ' + words.slice(i + 1).join(' ') : ''}</>;
 }
 
 export function SectionHead({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {

@@ -7,11 +7,12 @@ import { Art } from '../components/Art';
 import { Empty, Stepper, TopBar } from '../components/Layout';
 import { isValidKePhone } from '../components/MpesaPay';
 import { CountUp } from '../components/CountUp';
-import { BAR, money } from '../config';
+import { BAR, money, useBar } from '../config';
 
 const TIPS = [0, 0.1, 0.15, 0.2];
 
 export function Cart({ nav }: { nav: Nav }) {
+  const bar = useBar();
   const cart = useStore((s) => s.cart);
   const appliedCode = useStore((s) => s.appliedCode);
   const [codeInput, setCodeInput] = useState('');
@@ -29,7 +30,7 @@ export function Cart({ nav }: { nav: Nav }) {
 
   const subtotal = cartSubtotal(cart);
   const discount = promo?.discount ?? 0;
-  const fee = Math.round((subtotal - discount) * BAR.serviceFeeRate);
+  const fee = Math.round((subtotal - discount) * bar.serviceFeeRate);
   const tip = Math.round(subtotal * tipRate);
   const total = subtotal - discount + fee + tip;
 
@@ -149,7 +150,7 @@ export function Cart({ nav }: { nav: Nav }) {
       <div className="card summary">
         <div><span>Subtotal</span><span>{money(subtotal)}</span></div>
         {discount > 0 && <div className="discount"><span>Discount ({promo?.code})</span><span>−{money(discount)}</span></div>}
-        <div><span>Service ({BAR.serviceFeeRate * 100}%)</span><span>{money(fee)}</span></div>
+        <div><span>Service ({Math.round(bar.serviceFeeRate * 1000) / 10}%)</span><span>{money(fee)}</span></div>
         <div><span>Tip</span><span>{money(tip)}</span></div>
         <div className="summary-total"><span>Total</span><span><CountUp value={total} format={(n) => money(Math.round(n))} duration={500} /></span></div>
         <p className="tiny muted">App orders earn Rizz Rewards points.</p>

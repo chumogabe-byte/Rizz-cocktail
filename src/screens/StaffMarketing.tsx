@@ -5,7 +5,6 @@ import { mediaUrl } from '../api';
 import { resizeImage } from '../image';
 import { AD_THEMES, adBackground } from '../components/Promo';
 import { CATEGORIES } from '../data/menu';
-import { SPACES } from '../data/spaces';
 import { money } from '../config';
 import { timeAgo } from './Social';
 
@@ -126,6 +125,7 @@ export function AdsPanel() {
 }
 
 function AdEditor({ id, initial, existingImage, onClose }: { id?: string; initial: Partial<Ad> & { image?: string; removeImage?: boolean }; existingImage?: string; onClose: () => void }) {
+  const spaces = useStore((s) => s.spaces);
   const [ad, setAd] = useState(initial);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -175,7 +175,7 @@ function AdEditor({ id, initial, existingImage, onClose }: { id?: string; initia
           </label>
           {cta.type !== 'none' && <label className="field"><span>Button text</span><input maxLength={24} value={cta.label} onChange={(e) => setAd({ ...ad, cta: { ...cta, label: e.target.value } })} /></label>}
           {cta.type === 'menu' && <label className="field"><span>Menu section</span><select value={cta.target} onChange={(e) => setAd({ ...ad, cta: { ...cta, target: e.target.value } })}><option value="">All</option>{CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
-          {cta.type === 'book' && <label className="field"><span>Space</span><select value={cta.target} onChange={(e) => setAd({ ...ad, cta: { ...cta, target: e.target.value } })}><option value="">Any</option>{SPACES.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
+          {cta.type === 'book' && <label className="field"><span>Space</span><select value={cta.target} onChange={(e) => setAd({ ...ad, cta: { ...cta, target: e.target.value } })}><option value="">Any</option>{spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
           {cta.type === 'code' && <label className="field"><span>Promo code</span><input value={cta.target} onChange={(e) => setAd({ ...ad, cta: { ...cta, target: e.target.value.toUpperCase() } })} placeholder="WELCOME10" /></label>}
         </div>
         <div className="field"><span>Show on</span>

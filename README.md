@@ -28,7 +28,26 @@ The design takes cues from modern nightlife apps: a dark UI with electric purple
 - **Navigation**: pages slide in and out like a native app, and a glowing pill springs between bottom-bar tabs. Cocktail bubbles rise and a floating mosaic moves on the welcome screen.
 - **Accessibility**: everything switches off automatically when the phone's *Reduce motion* setting is on.
 
-### Staff console (`/#staff`, default PIN `1234`)
+### Two apps: guest vs admin
+| | **Rizz** (guest app) | **Rizz Admin** (management app) |
+|---|---|---|
+| Web | `https://<server>/` | `https://<server>/admin` |
+| Android | `rizz-cocktail-bar.apk` (`com.rizz.cocktailbar`) | `rizz-admin.apk` (`com.rizz.cocktailbar.admin`), with its own dark icon and crown |
+| Who | Guests | Owner, managers, staff |
+
+The guest app contains **no staff or admin code**. The admin app has a sidebar on tablets and computers, and a slide-out menu on phones.
+
+**Two access levels** (set on the server):
+- **`ADMIN_PIN`** (owner / manager) gets full control: menu & prices, item photos, offers & hero slides, promo codes & rewards, events, spaces, customers, and **App & Branding**.
+- **`STAFF_PIN`** (bartenders / door staff) covers operations only: orders, bookings, event sales & door check-in, and moderating Moments. The server rejects any staff attempt to change prices or content.
+
+**What the admin can change without touching code** (every change is live on all guest phones instantly):
+- **Menu & Prices**: add, edit or delete items, prices, offer prices, photos, options, sold out, category-wide offers.
+- **Spaces**: bookable areas with photo, description, min/max guests, minimum spend, perks, "several groups per slot", and show/hide.
+- **App & Branding**: bar name, tagline, address, opening hours, phone, service charge %, the home-screen headline, photos for the "Order" and "Book" buttons, and the welcome screen title, subtitle and up to 6 background photos.
+- **Offers & Hero slides**, **Events & Tickets**, **Promo codes & Rewards**, **Moments**, **Customers**, **Dashboard**.
+
+### Staff console sections (Rizz Admin)
 - **Orders**: New → Preparing → Ready board with sound alerts. Tickets show any promo code used.
 - **Bookings**: confirm, decline, check in.
 - **Events & Tickets**: create and edit events with a square photo or flyer, tagline, start and end time, location, description, ticket types (name, price, how many available), ★ featured (leads the hero carousel), and published or hidden. Each event has a sales list (mark paid, check in, cancel to free places) and a capacity bar. **Door check-in** works by typing or scanning a ticket code; it warns about unpaid tickets and blocks codes that have already been used. Totals show ticket revenue paid and still to collect.
@@ -51,7 +70,7 @@ npm install
 npm start          # builds the app and runs the server on http://localhost:3001
 ```
 
-Open `http://localhost:3001` for the guest app and `http://localhost:3001/#staff` for the staff console. Other devices on the same Wi-Fi can use `http://<this-computer's-IP>:3001`.
+Open `http://localhost:3001` for the guest app and `http://localhost:3001/admin` for the admin app. Other devices on the same Wi-Fi can use `http://<this-computer's-IP>:3001`.
 
 For development with hot reload, run these in two terminals:
 
@@ -65,7 +84,8 @@ Server settings (environment variables):
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `3001` | HTTP port |
-| `STAFF_PIN` | `1234` | Staff console PIN. **Change this.** |
+| `ADMIN_PIN` | `0000` | Owner/manager PIN: full control. **Change this.** |
+| `STAFF_PIN` | `1234` | Staff PIN: operations only. **Change this.** |
 | `DATA_FILE` | `server/data/db.json` | Where data is saved. Photos go in an `uploads/` folder next to it. |
 
 ## M-Pesa payments
@@ -121,7 +141,7 @@ This works on any Docker host, such as Railway, Fly.io, Render or a VPS. Mount a
 
 The `android/` folder is a native Android project (Capacitor) that wraps the same app.
 
-**Get the APK:** every push triggers the **Build Android app** GitHub Action. Open the repo's **Actions** tab, select the latest run, and download the **rizz-cocktail-bar-apk** artifact. Pushing a tag like `v1.0.0` also attaches the APK to a GitHub Release.
+**Get the APKs:** every push triggers the **Build Android apps** GitHub Action. Open the repo's **Actions** tab, select the latest run, and download the **rizz-apps** artifact. It contains `rizz-cocktail-bar.apk` (guests) and `rizz-admin.apk` (management). Pushing a tag like `v1.0.0` also attaches the APK to a GitHub Release.
 
 **Install:** copy `rizz-cocktail-bar.apk` to an Android phone, open it, and allow "install unknown apps". On first launch it asks for the **bar server address**, for example `https://rizz.example.com` or `192.168.1.20:3001` on the bar's Wi-Fi. This can be changed later under Profile → Server.
 

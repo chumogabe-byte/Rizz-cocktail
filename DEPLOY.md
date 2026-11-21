@@ -11,14 +11,15 @@ The server is one Docker service. It runs the API, live updates, M-Pesa and the 
 3. Pick the `Rizz-cocktail` repo and the branch **`claude/rizz-bar-app-y9l8ld`** (or `main`, if you merge into it).
    Render reads `render.yaml` and shows **rizz-cocktail-bar** (web service, Starter plan, 1 GB disk at `/data`, Frankfurt region).
 4. Fill in the values it asks for:
-   - **STAFF_PIN**: the PIN your staff will use for the console. Don't use 1234.
+   - **ADMIN_PIN**: your owner/manager PIN (full control over prices, images and settings).
+   - **STAFF_PIN**: the bartender/door PIN (orders, bookings and check-in only). Make it different from the admin PIN.
    - Leave the `MPESA_*` keys blank for now. M-Pesa stays in safe test mode.
 5. Click **Apply** and add a payment card when asked. The first build takes about 3 to 5 minutes.
 6. When the status is **Live**, your address is shown at the top, for example `https://rizz-cocktail-bar.onrender.com`.
 
 **Check it:**
 - `https://<your-address>/`: the guest app
-- `https://<your-address>/#staff`: the staff console (enter your PIN)
+- `https://<your-address>/admin`: **Rizz Admin** (log in with your admin or staff PIN)
 - `https://<your-address>/#tv`: the bar TV screen
 - `https://<your-address>/api/health` should show `{"ok":true}`
 
@@ -30,7 +31,7 @@ So guests are never asked for a server address:
 
 1. In GitHub open the repo → **Settings → Secrets and variables → Actions → Variables → New repository variable**.
 2. Name: `RIZZ_API_URL`. Value: your Render address, e.g. `https://rizz-cocktail-bar.onrender.com` (no trailing slash).
-3. Go to **Actions → Build Android app → Run workflow**. The new APK in the run's **Artifacts** has the address built in.
+3. Go to **Actions → Build Android apps → Run workflow**. Both APKs in the run's **Artifacts** (`rizz-apps`: guest + admin) have the address built in.
 
 (The web app needs nothing. It is served by the same server, so guests can also just open the URL in a browser.)
 

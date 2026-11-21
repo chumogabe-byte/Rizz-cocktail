@@ -9,7 +9,9 @@
     "dev:server": "node --watch server/index.js",
     "build": "tsc && vite build",
     "start": "npm run build && node server/index.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:consumer": "tsc && VITE_APP=consumer vite build",
+    "build:admin": "tsc && VITE_APP=admin vite build --outDir dist-admin"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.3",

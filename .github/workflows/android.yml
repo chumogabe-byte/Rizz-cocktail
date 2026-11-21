@@ -1,4 +1,4 @@
-name: Build Android app
+name: Build Android apps
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       api_url:
-        description: "Server address baked into the app (e.g. https://rizz.example.com). Leave blank to ask on first launch."
+        description: "Server address baked into both apps (e.g. https://rizz.example.com). Leave blank to use the RIZZ_API_URL variable, or ask on first launch."
         required: false
         default: ''
 
@@ -17,6 +17,8 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      VITE_API_URL: ${{ github.event.inputs.api_url || vars.RIZZ_API_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,28 +35,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build web app
-        run: npm run build
-        env:
-          VITE_API_URL: ${{ github.event.inputs.api_url || vars.RIZZ_API_URL }}
-
-      - name: Sync into Android project
+      # ---------- Rizz (guest app) ----------
+      - name: Build guest web app
+        run: npm run build:consumer
+      - name: Sync guest Android project
         run: npx cap sync android
-
-      - name: Build APK
+      - name: Build guest APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
           cp app/build/outputs/apk/debug/app-debug.apk ../rizz-cocktail-bar.apk
 
+      # ---------- Rizz Admin (management app) ----------
+      - name: Build admin web app
+        run: npm run build:admin
+      - name: Sync admin Android project
+        run: RIZZ_APP=admin npx cap sync android
+      - name: Build admin APK
+        working-directory: android-admin
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../rizz-admin.apk
+
       - uses: actions/upload-artifact@v4
         with:
-          name: rizz-cocktail-bar-apk
-          path: rizz-cocktail-bar.apk
+          name: rizz-apps
+          path: |
+            rizz-cocktail-bar.apk
+            rizz-admin.apk
 
       - name: Attach to release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: rizz-cocktail-bar.apk
+          files: |
+            rizz-cocktail-bar.apk
+            rizz-admin.apk

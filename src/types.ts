@@ -29,6 +29,9 @@ export interface Space {
   emoji: string;
   gradient: [string, string];
   perks: string[];
+  image?: string;
+  multiParty?: boolean; // several parties can book the same slot (bar counter, rooftop)
+  active?: boolean;     // false = hidden from guests
 }
 
 export interface CartLine {
@@ -202,3 +205,10 @@ export interface TicketOrder {
   status: TicketStatus;
   payment?: Payment;
 }
+
+export interface AppContent {
+  bar: { name: string; tagline: string; address: string; hours: string; phone: string; serviceFeeRate: number };
+  welcome: { title: string; subtitle: string; images: string[] };
+  home: { headline: string; orderImage: string | null; bookImage: string | null };
+}
+export type StaffRole = 'admin' | 'staff';

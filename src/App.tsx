@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { initFx } from './fx';
 import type { Nav, Route } from './router';
-import { actions, connect, useStore } from './store/store';
+import { connect, useStore } from './store/store';
 import { Icon } from './components/Icon';
 import { Welcome } from './screens/Welcome';
 import { Home } from './screens/Home';
@@ -13,7 +13,6 @@ import { Book } from './screens/Book';
 import { BookingDetail } from './screens/BookingDetail';
 import { Activity } from './screens/Activity';
 import { Profile } from './screens/Profile';
-import { Staff } from './screens/Staff';
 import { Social } from './screens/Social';
 import { Rewards } from './screens/Rewards';
 import { TV } from './screens/TV';
@@ -29,11 +28,10 @@ const TABS: { route: Route; icon: string; label: string }[] = [
   { route: { name: 'social' }, icon: 'camera', label: 'Moments' },
 ];
 
-const initialRoute = (): Route => (location.hash === '#staff' ? { name: 'staff' } : location.hash === '#tv' ? { name: 'tv' } : { name: 'home' });
+const initialRoute = (): Route => (location.hash === '#tv' ? { name: 'tv' } : { name: 'home' });
 
 export default function App() {
   const user = useStore((s) => s.user);
-  const staffUnlocked = useStore((s) => !!s.staffToken);
   const online = useStore((s) => s.online);
   const loaded = useStore((s) => s.loaded);
   const toast = useStore((s) => s.toast);
@@ -68,10 +66,6 @@ export default function App() {
   useEffect(() => { window.scrollTo(0, 0); }, [route]);
 
   if (route.name === 'tv') return <TV />;
-  if (route.name === 'staff') {
-    if (!staffUnlocked) return <StaffGate />;
-    return <>{!online && <OfflineBar loaded={loaded} />}<Staff nav={nav} />{toast && <div className="toast">{toast}</div>}</>;
-  }
   if (!user) return <div className="app"><Welcome /></div>;
 
   const showNav = ['home', 'menu', 'events', 'book', 'social', 'profile'].includes(route.name);
@@ -117,26 +111,4 @@ export default function App() {
 
 function OfflineBar({ loaded }: { loaded: boolean }) {
   return <div className="offline-bar">{loaded ? 'Reconnecting to the bar…' : 'Connecting to the bar…'}</div>;
-}
-
-function StaffGate() {
-  const [pin, setPin] = useState('');
-  const [err, setErr] = useState(false);
-  return (
-    <div className="app">
-      <div className="screen gate">
-        <div className="brand-mark">RIZZ<span>.</span></div>
-        <h2>Staff console</h2>
-        <p className="muted small">Enter the staff PIN to receive orders and manage bookings.</p>
-        <form className="stack" onSubmit={async (e) => {
-          e.preventDefault();
-          if (!(await actions.unlockStaff(pin))) setErr(true);
-        }}>
-          <input className={err ? 'invalid' : ''} autoFocus type="password" inputMode="numeric" placeholder="PIN" value={pin} onChange={(e) => { setPin(e.target.value); setErr(false); }} />
-          {err && <p className="error">Wrong PIN</p>}
-          <button className="btn btn-primary btn-block" type="submit">Unlock</button>
-        </form>
-      </div>
-    </div>
-  );
 }

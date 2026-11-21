@@ -15,8 +15,10 @@ services:
     envVars:
       - key: DATA_FILE
         value: /data/db.json
+      - key: ADMIN_PIN
+        sync: false          # owner/manager PIN — full control (prices, images, menu, settings)
       - key: STAFF_PIN
-        sync: false          # choose the staff console PIN
+        sync: false          # bartender/door PIN — orders, bookings, check-in only
       # ---- M-Pesa (leave MPESA_ENV=mock until you have Daraja keys) ----
       - key: MPESA_ENV
         value: mock          # mock | sandbox | production

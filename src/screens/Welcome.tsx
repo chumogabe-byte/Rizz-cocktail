@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { actions, connect } from '../store/store';
-import { getServerUrl, setServerUrl } from '../api';
-import { BAR } from '../config';
+import { actions, connect, useStore } from '../store/store';
+import { getServerUrl, mediaUrl, setServerUrl } from '../api';
+import { useBar } from '../config';
 
 export function Welcome() {
   const [name, setName] = useState('');
@@ -11,23 +11,30 @@ export function Welcome() {
   // The installed phone app needs to know where the bar's server is (the web app is served by it, so it already knows).
   const needsServer = Capacitor.isNativePlatform() && !getServerUrl();
   const [server, setServer] = useState('');
+  const bar = useBar();
+  const welcome = useStore((s) => s.content?.welcome);
+  const images = welcome?.images ?? [];
+  const title = (welcome?.title || 'Sip, Snack & Book Your Spot.').trim();
+  const lastSpace = title.lastIndexOf(' ');
 
   return (
     <div className="welcome">
       <div className="bubbles" aria-hidden>{Array.from({ length: 18 }, (_, i) => <span key={i} style={{ ['--i' as string]: i }} />)}</div>
       <div className="welcome-mosaic" aria-hidden>
         {['🍸', '🥃', '🍹', '🍾', '🍋', '🎶'].map((e, i) => (
-          <div key={i} className={`mosaic-tile t${i}`}><span>{e}</span></div>
+          <div key={i} className={`mosaic-tile t${i}`} style={images[i] ? { background: `center/cover url("${mediaUrl(images[i])}")` } : undefined}>
+            {!images[i] && <span>{e}</span>}
+          </div>
         ))}
       </div>
       <div className="welcome-body">
-        <div className="brand-mark">RIZZ<span>.</span></div>
+        <div className="brand-mark">{bar.name.toUpperCase()}<span>.</span></div>
         {step === 'splash' ? (
           <>
-            <h1 className="welcome-title">Sip, Snack &<br />Book Your <span className="accent">Spot.</span></h1>
-            <p className="muted">Order cocktails and bites straight to your table, or reserve the best seats in the house.</p>
+            <h1 className="welcome-title">{lastSpace > 0 ? title.slice(0, lastSpace) + ' ' : ''}<span className="accent">{title.slice(lastSpace + 1)}</span></h1>
+            <p className="muted">{welcome?.subtitle || 'Order cocktails and bites straight to your table, or reserve the best seats in the house.'}</p>
             <button className="btn btn-primary btn-block" onClick={() => setStep('form')}>Get Started</button>
-            <p className="tiny muted center">{BAR.tagline} · {BAR.hours}</p>
+            <p className="tiny muted center">{bar.tagline} · {bar.hours}</p>
           </>
         ) : (
           <form className="stack" onSubmit={(e) => {

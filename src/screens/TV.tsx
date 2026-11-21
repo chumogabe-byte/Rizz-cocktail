@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { useStore } from '../store/store';
 import { mediaUrl, getServerUrl } from '../api';
 import { adBackground } from '../components/Promo';
-import { BAR } from '../config';
+import { useBar } from '../config';
 
 /**
  * Big-screen mode for the bar's TVs: open /#tv on a smart TV / laptop plugged into a screen.
@@ -11,6 +11,7 @@ import { BAR } from '../config';
  * Optional: /#tv?app=https://link-to-your-app  (defaults to this server's address)
  */
 export function TV() {
+  const bar = useBar();
   const ads = useStore((s) => s.ads).filter((a) => a.active && a.placements.includes('tv'));
   const posts = useStore((s) => s.posts).filter((p) => !p.hidden);
   const online = useStore((s) => s.online);
@@ -33,7 +34,7 @@ export function TV() {
   return (
     <div className="tv">
       <header className="tv-head">
-        <div className="brand-mark">RIZZ<span>.</span> <small>{BAR.tagline}</small></div>
+        <div className="brand-mark">RIZZ<span>.</span> <small>{bar.tagline}</small></div>
         <div className="tv-clock">{clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}{!online && ' · offline'}</div>
       </header>
 

@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Nav } from '../router';
 import type { Booking, Order, OrderStatus } from '../types';
 import { actions, run, useStore } from '../store/store';
 import { Icon } from '../components/Icon';
-import { BAR, money, seatLabel } from '../config';
+import { money, seatLabel, useBar } from '../config';
 import { bookingStatusText, fmtDate } from './BookingDetail';
 import { AdsPanel, CustomersPanel, PromosPanel, SocialPanel } from './StaffMarketing';
 import { MenuPanel } from './StaffMenu';
+import { SettingsPanel, SpacesPanel } from '../admin/AdminContent';
+import { getServerUrl } from '../api';
+import type { StaffRole } from '../types';
 import { PayBadge } from '../components/MpesaPay';
 import { EventsPanel } from './StaffEvents';
 
-type Tab = 'orders' | 'bookings' | 'events' | 'menu' | 'promos' | 'ads' | 'social' | 'customers' | 'overview';
+type Tab = 'orders' | 'bookings' | 'events' | 'menu' | 'spaces' | 'settings' | 'promos' | 'ads' | 'social' | 'customers' | 'overview';
 
 const COLUMNS: { s: OrderStatus; title: string; next?: OrderStatus; cta?: string }[] = [
   { s: 'new', title: 'New', next: 'preparing', cta: 'Accept & prepare' },
@@ -41,10 +43,23 @@ function useNow(ms = 15000) {
   return now;
 }
 
-export function Staff({ nav }: { nav: Nav }) {
+type NavItem = [Tab, string, string, StaffRole[]];
+const NAV: { group: string; items: NavItem[] }[] = [
+  { group: 'Operations', items: [['overview', '📊', 'Dashboard', ['admin']], ['orders', '🧾', 'Orders', ['admin', 'staff']], ['bookings', '📅', 'Bookings', ['admin', 'staff']], ['events', '🎉', 'Events & Tickets', ['admin', 'staff']]] },
+  { group: 'Catalogue', items: [['menu', '🍸', 'Menu & Prices', ['admin']], ['spaces', '🛋️', 'Spaces', ['admin']]] },
+  { group: 'Marketing', items: [['ads', '📣', 'Offers & Hero slides', ['admin']], ['promos', '🎟️', 'Promo codes & Rewards', ['admin']], ['social', '📸', 'Moments', ['admin', 'staff']]] },
+  { group: 'People & app', items: [['customers', '👥', 'Customers', ['admin']], ['settings', '🎨', 'App & Branding', ['admin']]] },
+];
+
+export function Staff({ onExit }: { onExit: () => void }) {
+  const bar = useBar();
+  const role = useStore((s) => s.staffRole) ?? 'staff';
   const orders = useStore((s) => s.orders);
   const bookings = useStore((s) => s.bookings);
   const [tab, setTab] = useState<Tab>('orders');
+  const allowed = (t: Tab) => NAV.some((g) => g.items.some(([id, , , roles]) => id === t && roles.includes(role)));
+  useEffect(() => { if (!allowed(tab)) setTab('orders'); }, [role]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [menuOpen, setMenuOpen] = useState(false);
   const posts = useStore((s) => s.posts);
   const mpesa = useStore((s) => s.mpesa);
   const [sound, setSound] = useState(true);
@@ -63,29 +78,47 @@ export function Staff({ nav }: { nav: Nav }) {
   const revenue = todayOrders.reduce((s, o) => s + o.total, 0);
 
   return (
+    <div className="admin-shell">
+      <aside className={`admin-side ${menuOpen ? 'open' : ''}`}>
+        <div className="brand-mark sm">{bar.name.toUpperCase()}<span>.</span> <small>Admin</small></div>
+        <span className={`role-badge ${role}`}>{role === 'admin' ? '👑 Admin — full access' : '🧑‍🍳 Staff — operations'}</span>
+        {NAV.map((g) => {
+          const items = g.items.filter(([, , , roles]) => roles.includes(role));
+          if (!items.length) return null;
+          return (
+            <div key={g.group} className="admin-nav-group">
+              <small>{g.group}</small>
+              {items.map(([id, icon, label]) => (
+                <button key={id} className={`admin-nav ${tab === id ? 'on' : ''}`} onClick={() => { setTab(id); setMenuOpen(false); window.scrollTo(0, 0); }}>
+                  <span>{icon}</span>{label}
+                  {id === 'orders' && newCount > 0 && <span className="badge inline">{newCount}</span>}
+                  {id === 'bookings' && pendingBookings > 0 && <span className="badge inline">{pendingBookings}</span>}
+                </button>
+              ))}
+            </div>
+          );
+        })}
+        <div className="admin-nav-group">
+          <small>Screens</small>
+          <a className="admin-nav" href={`${getServerUrl() || location.origin}/#tv`} target="_blank" rel="noreferrer"><span>📺</span>Bar TV screen</a>
+          <a className="admin-nav" href={`${getServerUrl() || location.origin}/`} target="_blank" rel="noreferrer"><span>📱</span>Open guest app</a>
+        </div>
+        <button className="admin-nav danger" onClick={onExit}><span>🚪</span>Log out</button>
+      </aside>
+      {menuOpen && <div className="admin-scrim" onClick={() => setMenuOpen(false)} />}
     <div className="staff">
       <header className="staff-head">
-        <div className="brand-mark sm">RIZZ<span>.</span> <small>Staff</small></div>
+        <div className="row-gap">
+          <button className="icon-btn admin-burger" onClick={() => setMenuOpen(true)} aria-label="Menu">☰</button>
+          <h2 className="admin-title">{NAV.flatMap((g) => g.items).find(([id]) => id === tab)?.[2]}</h2>
+        </div>
         <div className="row-gap">
           {mpesa && <span className={`pay-badge ${mpesa.mode === 'production' ? 'paid' : 'pending'}`} title="M-Pesa mode">M-Pesa: {mpesa.mode === 'mock' ? 'TEST MODE' : mpesa.mode === 'sandbox' ? 'Sandbox' : 'Live'}</span>}
           <button className={`icon-btn ${sound ? '' : 'muted'}`} onClick={() => setSound(!sound)} title="Sound alerts"><Icon name="bell" /></button>
-          <button className="btn btn-ghost sm" onClick={() => { actions.lockStaff(); nav.go({ name: 'profile' }); }}>Exit</button>
         </div>
       </header>
 
-      <div className="chips-row staff-tabs">
-        {([
-          ['orders', '🧾 Orders', newCount], ['bookings', '📅 Bookings', pendingBookings], ['events', '🎉 Events & Tickets', 0], ['menu', '🍸 Menu & Offers', 0], ['promos', '🎟️ Promo codes & Rewards', 0],
-          ['ads', '📣 Ads & Hero slides', 0], ['social', '📸 Moments', posts.length], ['customers', '👥 Customers', 0], ['overview', '📊 Overview', 0],
-        ] as [Tab, string, number][]).map(([id, label, n]) => (
-          <button key={id} className={`chip ${tab === id ? 'chip-active' : ''}`} onClick={() => setTab(id)}>
-            {label}{n > 0 && (id === 'orders' || id === 'bookings') && <span className="badge inline">{n}</span>}
-          </button>
-        ))}
-        <a className="chip" href="#tv" target="_blank" rel="noreferrer">📺 Open TV screen</a>
-      </div>
-
-      {orders.length === 0 && bookings.length === 0 && (
+      {role === 'admin' && orders.length === 0 && bookings.length === 0 && (tab === 'orders' || tab === 'overview') && (
         <div className="card center stack">
           <p className="muted">No orders or bookings yet. Open the app in another tab to place one — it'll appear here live.</p>
           <button className="btn btn-ghost" onClick={() => run(actions.seedDemo())}>Load demo data</button>
@@ -113,6 +146,8 @@ export function Staff({ nav }: { nav: Nav }) {
       {tab === 'bookings' && <BookingsBoard bookings={bookings} />}
       {tab === 'events' && <EventsPanel />}
       {tab === 'menu' && <MenuPanel />}
+      {tab === 'spaces' && <SpacesPanel />}
+      {tab === 'settings' && <SettingsPanel />}
       {tab === 'promos' && <PromosPanel />}
       {tab === 'ads' && <AdsPanel />}
       {tab === 'social' && <SocialPanel />}
@@ -142,7 +177,8 @@ export function Staff({ nav }: { nav: Nav }) {
           </div>
         </div>
       )}
-      <p className="tiny muted center pad">{BAR.name} · {BAR.address}</p>
+      <p className="tiny muted center pad">{bar.name} · {bar.address}</p>
+    </div>
     </div>
   );
 }

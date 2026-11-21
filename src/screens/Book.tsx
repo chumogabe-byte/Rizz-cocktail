@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Nav } from '../router';
-import { OCCASIONS, SPACES, TIME_SLOTS } from '../data/spaces';
+import { OCCASIONS, TIME_SLOTS } from '../data/spaces';
+import { mediaUrl } from '../api';
 import { actions, useStore } from '../store/store';
 import { Art } from '../components/Art';
 import { Icon } from '../components/Icon';
@@ -23,12 +24,13 @@ export function Book({ nav, spaceId }: { nav: Nav; spaceId?: string }) {
   const user = useStore((s) => s.user);
   const bookings = useStore((s) => s.bookings);
   const days = useMemo(() => nextDays(14), []);
-  const [space, setSpace] = useState(spaceId ?? SPACES[1].id);
+  const SPACES = useStore((s) => s.spaces).filter((x) => x.active !== false);
+  const [space, setSpace] = useState(spaceId ?? (SPACES[1] ?? SPACES[0])?.id);
   const [date, setDate] = useState(days[0].iso);
   const [time, setTime] = useState('20:00');
   const [duration, setDuration] = useState(2);
-  const sp = SPACES.find((s) => s.id === space)!;
-  const [guests, setGuests] = useState(Math.max(2, sp.capacity[0]));
+  const sp = SPACES.find((s) => s.id === space) ?? SPACES[0];
+  const [guests, setGuests] = useState(Math.max(2, sp?.capacity[0] ?? 2));
   const [occasion, setOccasion] = useState('');
   const [name, setName] = useState(user?.name ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
@@ -38,7 +40,7 @@ export function Book({ nav, spaceId }: { nav: Nav; spaceId?: string }) {
 
   // A slot is "taken" if a confirmed/pending booking exists for the same space/date/time.
   // Bar counter & rooftop allow several parties at once.
-  const multi = space === 'bar-counter' || space === 'rooftop';
+  const multi = !!sp?.multiParty;
   const taken = (t: string) => !multi && bookings.some((b) => b.spaceId === space && b.date === date && b.time === t && ['pending', 'confirmed', 'checked-in'].includes(b.status));
   const isPast = (t: string) => {
     if (date !== days[0].iso) return false;
@@ -69,6 +71,8 @@ export function Book({ nav, spaceId }: { nav: Nav; spaceId?: string }) {
     }
   };
 
+  if (!sp) return <div className="screen"><TopBar title="Book a space" onBack={nav.back} /><p className="muted pad">Bookings are not available right now.</p></div>;
+
   return (
     <div className="screen with-cta">
       <TopBar title="Book a space" onBack={nav.back} />
@@ -77,7 +81,7 @@ export function Book({ nav, spaceId }: { nav: Nav; spaceId?: string }) {
       <div className="h-scroll spaces">
         {SPACES.map((s) => (
           <button key={s.id} className={`space-card ${space === s.id ? 'on' : ''}`} onClick={() => pickSpace(s.id)}>
-            <Art emoji={s.emoji} gradient={s.gradient} size="md" />
+            <Art emoji={s.emoji} gradient={s.gradient} size="md" img={s.image ? mediaUrl(s.image) : undefined} />
             <strong>{s.name}</strong>
             <span className="tiny muted">{s.capacity[0]}–{s.capacity[1]} guests</span>
           </button>

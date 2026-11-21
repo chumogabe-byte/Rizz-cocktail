@@ -4,7 +4,6 @@ import { actions, run, showToast, useStore } from '../store/store';
 import { resizeImage } from '../image';
 import { mediaUrl } from '../api';
 import { AD_THEMES } from '../components/Promo';
-import { SPACES } from '../data/spaces';
 import { money } from '../config';
 import { eventBg, fmtWhen } from './Events';
 import { PayBadge } from '../components/MpesaPay';
@@ -21,6 +20,7 @@ type Draft = Partial<BarEvent> & { image?: string; removeImage?: boolean };
 export function EventsPanel() {
   const events = useStore((s) => s.events);
   const tickets = useStore((s) => s.tickets);
+  const isAdmin = useStore((s) => s.staffRole) === 'admin';
   const [editing, setEditing] = useState<{ id?: string; draft: Draft } | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [code, setCode] = useState('');
@@ -66,7 +66,7 @@ export function EventsPanel() {
 
       <div className="row-gap">
         <p className="small muted grow">Events appear on the guest Events page as square cards; ★ featured events also lead the hero carousel.</p>
-        <button className="btn btn-primary sm" onClick={() => setEditing({ draft: blank() })}>+ New event</button>
+        {isAdmin && <button className="btn btn-primary sm" onClick={() => setEditing({ draft: blank() })}>+ New event</button>}
       </div>
 
       {sorted.map((e) => {
@@ -86,7 +86,7 @@ export function EventsPanel() {
               </div>
               <div className="row-gap wrap">
                 <button className="btn btn-ghost sm" onClick={() => setOpen(open === e.id ? null : e.id)}>Sales ({evTickets.filter((t) => t.status !== 'cancelled').length})</button>
-                <button className="btn btn-ghost sm" onClick={() => setEditing({ id: e.id, draft: { ...e, image: undefined } })}>Edit</button>
+                {isAdmin && <button className="btn btn-ghost sm" onClick={() => setEditing({ id: e.id, draft: { ...e, image: undefined } })}>Edit</button>}
               </div>
             </div>
             {open === e.id && (
@@ -119,6 +119,7 @@ export function EventsPanel() {
 
 function EventEditor({ id, initial, existingImage, onClose }: { id?: string; initial: Draft; existingImage?: string; onClose: () => void }) {
   const [d, setD] = useState<Draft>(initial);
+  const spaces = useStore((s) => s.spaces);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const img = d.image ?? (d.removeImage ? undefined : existingImage);
@@ -157,7 +158,7 @@ function EventEditor({ id, initial, existingImage, onClose }: { id?: string; ini
           <label className="field"><span>Ends</span><input type="datetime-local" value={toLocal(d.endsAt)} onChange={(e) => setD({ ...d, endsAt: fromLocal(e.target.value) })} /></label>
           <label className="field"><span>Location</span>
             <input list="rizz-locations" value={d.location} onChange={(e) => setD({ ...d, location: e.target.value })} />
-            <datalist id="rizz-locations"><option value="Main Bar" />{SPACES.map((s) => <option key={s.id} value={s.name} />)}</datalist>
+            <datalist id="rizz-locations"><option value="Main Bar" />{spaces.map((s) => <option key={s.id} value={s.name} />)}</datalist>
           </label>
           <label className="field"><span>Emoji (if no photo)</span><input maxLength={4} value={d.emoji} onChange={(e) => setD({ ...d, emoji: e.target.value })} /></label>
         </div>

@@ -1,6 +1,8 @@
 node_modules
 dist
 android
+android-admin
+dist-admin
 .git
 server/data
 .env

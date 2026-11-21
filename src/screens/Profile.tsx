@@ -4,9 +4,10 @@ import { actions, connect, useStore } from '../store/store';
 import { getServerUrl, setServerUrl } from '../api';
 import { Icon } from '../components/Icon';
 import { TopBar } from '../components/Layout';
-import { BAR, money } from '../config';
+import { money, useBar } from '../config';
 
 export function Profile({ nav }: { nav: Nav }) {
+  const bar = useBar();
   const user = useStore((s) => s.user)!;
   const customerId = useStore((s) => s.customerId);
   const online = useStore((s) => s.online);
@@ -15,8 +16,6 @@ export function Profile({ nav }: { nav: Nav }) {
   const [server, setServer] = useState(getServerUrl());
   const [saved, setSaved] = useState(false);
   const favs = useStore((s) => s.favorites);
-  const [pin, setPin] = useState('');
-  const [pinErr, setPinErr] = useState(false);
   const me = useStore((s) => s.me);
   const threshold = useStore((s) => s.settings.rewardThreshold) || 100;
   const spent = me?.spent ?? 0;
@@ -46,16 +45,7 @@ export function Profile({ nav }: { nav: Nav }) {
         <button className="row-card" onClick={() => nav.go({ name: 'activity', tab: 'bookings' })}><Icon name="calendar" /><div className="row-body"><strong>My bookings</strong></div>›</button>
         <button className="row-card" onClick={() => nav.go({ name: 'tickets' })}><Icon name="ticket" /><div className="row-body"><strong>My event tickets</strong></div>›</button>
         <button className="row-card" onClick={() => nav.go({ name: 'rewards' })}><Icon name="star" /><div className="row-body"><strong>Rewards & codes</strong></div>›</button>
-        <a className="row-card" href={`tel:${BAR.phone.replace(/\s/g, '')}`}><Icon name="bell" /><div className="row-body"><strong>Call the bar</strong><span className="small muted">{BAR.phone}</span></div>›</a>
-      </div>
-
-      <div className="card stack">
-        <h3><Icon name="shield" size={16} /> Staff console</h3>
-        <p className="tiny muted">Bartenders & managers: receive orders and manage bookings.</p>
-        <form className="row-gap" onSubmit={async (e) => { e.preventDefault(); if (await actions.unlockStaff(pin)) nav.go({ name: 'staff' }); else setPinErr(true); }}>
-          <input className={`grow ${pinErr ? 'invalid' : ''}`} type="password" inputMode="numeric" placeholder="PIN" value={pin} onChange={(e) => { setPin(e.target.value); setPinErr(false); }} />
-          <button className="btn btn-primary" type="submit">Enter</button>
-        </form>
+        <a className="row-card" href={`tel:${bar.phone.replace(/\s/g, '')}`}><Icon name="bell" /><div className="row-body"><strong>Call the bar</strong><span className="small muted">{bar.phone}</span></div>›</a>
       </div>
 
       <div className="card stack">

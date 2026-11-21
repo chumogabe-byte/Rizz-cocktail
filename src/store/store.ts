@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
-import type { BarEvent, TicketOrder, TicketStatus, MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
+import type { AppContent, Space, StaffRole, BarEvent, TicketOrder, TicketStatus, MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
 import { api, subscribe, type Snapshot } from '../api';
 import seedMenu from '../../server/seed-menu.json';
+import seedSpaces from '../../server/seed-spaces.json';
 
 /**
  * App state.
@@ -26,6 +27,9 @@ export interface State {
   events: BarEvent[];
   tickets: TicketOrder[];
   mpesa: Snapshot['mpesa'] | null;
+  content: AppContent | null;
+  spaces: Space[];
+  staffRole: StaffRole | null;
   online: boolean;
   loaded: boolean;
   staffToken: string | null;
@@ -41,7 +45,8 @@ function load(): State {
   let saved: Partial<State> = {};
   let token: string | null = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { /* ignore */ }
-  try { token = sessionStorage.getItem(TOKEN_KEY); } catch { /* ignore */ }
+  let role: StaffRole | null = null;
+  try { token = localStorage.getItem(TOKEN_KEY); role = localStorage.getItem(TOKEN_KEY + '-role') as StaffRole | null; } catch { /* ignore */ }
   return {
     user: saved.user ?? null,
     customerId: saved.customerId || newId(),
@@ -51,7 +56,7 @@ function load(): State {
     orders: [], bookings: [], posts: [], ads: [], vouchers: [], me: null,
     settings: { rewardThreshold: 100, rewardValue: 1000, pointsPerUnit: 0.01 },
     menu: seedMenu as MenuItem[],
-    events: [], tickets: [], mpesa: null,
+    events: [], tickets: [], mpesa: null, content: null, spaces: seedSpaces as Space[], staffRole: role,
     online: false, loaded: false,
     staffToken: token,
     toast: null,
@@ -82,7 +87,7 @@ let unsubscribe: (() => void) | null = null;
 export function connect() {
   unsubscribe?.();
   unsubscribe = subscribe({ customerId: state.customerId, token: state.staffToken }, {
-    snapshot: (s: Snapshot) => set({ ...s, loaded: true }),
+    snapshot: ({ role, ...s }: Snapshot) => set({ ...s, loaded: true, ...(state.staffToken && role ? { staffRole: role } : {}) }),
     order: (o) => set({ orders: upsert(state.orders, o) }),
     booking: (b) => set({ bookings: upsert(state.bookings, b) }),
     post: (p) => set({ posts: p.removed ? state.posts.filter((x) => x.id !== p.id) : upsert(state.posts, p) }),
@@ -90,6 +95,8 @@ export function connect() {
     vouchers: (vouchers) => set({ vouchers }),
     me: (me) => set({ me }),
     menu: (menu) => set({ menu }),
+    content: (content) => set({ content }),
+    spaces: (spaces) => set({ spaces }),
     events: (events) => set({ events }),
     ticket: (t) => set({ tickets: upsert(state.tickets, t) }),
     status: (online) => { if (online !== state.online) set({ online }); },
@@ -257,9 +264,9 @@ export const actions = {
 
   async unlockStaff(pin: string): Promise<boolean> {
     try {
-      const { token } = await api<{ token: string }>('/api/staff/login', { method: 'POST', body: { pin } });
-      try { sessionStorage.setItem(TOKEN_KEY, token); } catch { /* ignore */ }
-      set({ staffToken: token });
+      const { token, role } = await api<{ token: string; role: StaffRole }>('/api/staff/login', { method: 'POST', body: { pin } });
+      try { localStorage.setItem(TOKEN_KEY, token); localStorage.setItem(TOKEN_KEY + '-role', role); } catch { /* ignore */ }
+      set({ staffToken: token, staffRole: role });
       connect(); // re-open the stream with staff visibility
       return true;
     } catch {
@@ -267,10 +274,19 @@ export const actions = {
     }
   },
   lockStaff() {
-    try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
-    set({ staffToken: null });
+    try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(TOKEN_KEY + '-role'); } catch { /* ignore */ }
+    set({ staffToken: null, staffRole: null });
     connect();
   },
+  // ---- admin: app content & spaces ----
+  async saveContent(patch: { bar?: Partial<AppContent['bar']>; welcome?: { title?: string; subtitle?: string; images?: string[] }; home?: { headline?: string; orderImage?: string | null; bookImage?: string | null } }) {
+    const content = await api<AppContent>('/api/content', { method: 'PATCH', ...staff(), body: patch });
+    set({ content });
+  },
+  async saveSpace(sp: Omit<Partial<Space>, 'image'> & { image?: string | null }, id?: string) {
+    await api(id ? `/api/spaces/${id}` : '/api/spaces', { method: id ? 'PATCH' : 'POST', ...staff(), body: sp });
+  },
+  async deleteSpace(id: string) { await api(`/api/spaces/${id}`, { method: 'DELETE', ...staff() }); },
   async seedDemo() { await api('/api/demo', { method: 'POST', ...staff() }); },
 };
 

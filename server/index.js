@@ -19,9 +19,10 @@ import { CALLBACK_SECRET, PUBLIC_URL, friendlyResult, mpesaInfo, normalizePhone,
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
 const STAFF_PIN = process.env.STAFF_PIN || '1234';
+// Owner / manager PIN: full control (prices, images, menu, settings). Staff PIN: day-to-day operations only.
+const ADMIN_PIN = process.env.ADMIN_PIN || (process.env.STAFF_PIN ? process.env.STAFF_PIN : '0000');
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data', 'db.json');
 const UPLOAD_DIR = path.join(path.dirname(DATA_FILE), 'uploads');
-const SERVICE_FEE_RATE = 0.05;
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // ---------- persistence ----------
@@ -69,12 +70,21 @@ const DEFAULT_EVENTS = [
     featured: false, published: true, createdAt: now0 },
 ];
 
+const SEED_SPACES = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed-spaces.json'), 'utf8'));
+const DEFAULT_CONTENT = {
+  bar: { name: 'Rizz', tagline: 'Cocktail Bar & Lounge', address: '12 Velvet Lane, Westlands, Nairobi', hours: '4:00 PM – 2:00 AM',
+    phone: '+254 700 000 000', serviceFeeRate: 0.05 },
+  welcome: { title: 'Sip, Snack & Book Your Spot.', subtitle: 'Order cocktails and bites straight to your table, or reserve the best seats in the house.', images: [] },
+  home: { headline: "What's your vibe tonight?", orderImage: null, bookImage: null },
+};
+
 const SEED_MENU = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed-menu.json'), 'utf8'));
 
-let db = { payments: [], events: DEFAULT_EVENTS, tickets: [], menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
+let db = { content: DEFAULT_CONTENT, spaces: SEED_SPACES, payments: [], events: DEFAULT_EVENTS, tickets: [], menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
 try {
   db = { ...db, ...JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) };
   db.settings = { ...DEFAULT_SETTINGS, ...db.settings };
+  db.content = { bar: { ...DEFAULT_CONTENT.bar, ...db.content?.bar }, welcome: { ...DEFAULT_CONTENT.welcome, ...db.content?.welcome }, home: { ...DEFAULT_CONTENT.home, ...db.content?.home } };
 } catch { /* first run */ }
 
 let saveTimer = null;
@@ -92,10 +102,13 @@ function save() {
 const uid = () => crypto.randomUUID();
 const code = (p) => `${p}-${Math.floor(1000 + Math.random() * 9000)}`;
 const round = (n) => Math.round(n * 100) / 100;
-const tokens = new Set();
+/** token → 'admin' | 'staff' */
+const tokens = new Map();
 const tokenOf = (req) => (req.headers.authorization || '').replace(/^Bearer /, '') || String(req.query.token || '');
 const isStaff = (req) => tokens.has(tokenOf(req));
+const isAdmin = (req) => tokens.get(tokenOf(req)) === 'admin';
 const requireStaff = (req, res, next) => (isStaff(req) ? next() : res.status(401).json({ error: 'Staff login required' }));
+const requireAdmin = (req, res, next) => (isAdmin(req) ? next() : res.status(isStaff(req) ? 403 : 401).json({ error: isStaff(req) ? 'Only an admin (manager PIN) can change this.' : 'Staff login required' }));
 const str = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : undefined);
 const num = (v, min, max, dflt) => { const n = Number(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt; };
 
@@ -133,7 +146,6 @@ const CATEGORY_IDS = ['cocktails', 'vodka', 'gin', 'whiskey', 'rum', 'tequila', 
 const ORDER_STATUSES = ['new', 'preparing', 'ready', 'served', 'cancelled'];
 const BOOKING_STATUSES = ['pending', 'confirmed', 'declined', 'checked-in', 'cancelled'];
 const ACTIVE_BOOKING = ['pending', 'confirmed', 'checked-in'];
-const MULTI_PARTY_SPACES = ['bar-counter', 'rooftop'];
 
 // ---------- customers, points & rewards ----------
 function customerStats(customerId) {
@@ -205,6 +217,9 @@ function viewFor(c) {
     vouchers: visibleVouchers(c),
     me: c.customerId ? customerStats(c.customerId) : null,
     settings: db.settings,
+    role: c.role || null,
+    content: db.content,
+    spaces: c.staff ? db.spaces : db.spaces.filter((x) => x.active !== false),
     mpesa: mpesaInfo(),
     menu: db.menu,
     events: (c.staff ? db.events : db.events.filter((e) => e.published)).map(withSales),
@@ -263,7 +278,7 @@ app.get('/api/state', (req, res) => res.json(viewFor({ staff: isStaff(req), cust
 
 app.get('/api/events', (req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
-  const c = { res, staff: isStaff(req), customerId: str(req.query.customerId, 64) };
+  const c = { res, staff: isStaff(req), role: tokens.get(tokenOf(req)) || null, customerId: str(req.query.customerId, 64) };
   send(c, 'snapshot', viewFor(c));
   clients.add(c);
   const ping = setInterval(() => res.write(': ping\n\n'), 25000);
@@ -271,10 +286,12 @@ app.get('/api/events', (req, res) => {
 });
 
 app.post('/api/staff/login', (req, res) => {
-  if (str(req.body?.pin, 20) !== STAFF_PIN) return res.status(401).json({ error: 'Wrong PIN' });
+  const pin = str(req.body?.pin, 20);
+  const role = pin === ADMIN_PIN ? 'admin' : pin === STAFF_PIN ? 'staff' : null;
+  if (!role) return res.status(401).json({ error: 'Wrong PIN' });
   const token = crypto.randomBytes(24).toString('hex');
-  tokens.add(token);
-  res.json({ token });
+  tokens.set(token, role);
+  res.json({ token, role });
 });
 
 // Remember a guest's display name/phone for staff insights
@@ -298,7 +315,7 @@ app.post('/api/vouchers/validate', (req, res) => {
   res.json({ code: v.code, description: v.description, discount: Math.round(d.discount) });
 });
 
-app.post('/api/vouchers', requireStaff, (req, res) => {
+app.post('/api/vouchers', requireAdmin, (req, res) => {
   const b = req.body || {};
   const c = str(b.code, 24)?.toUpperCase().replace(/[^A-Z0-9-]/g, '');
   if (!c) return res.status(400).json({ error: 'Code required' });
@@ -313,7 +330,7 @@ app.post('/api/vouchers', requireStaff, (req, res) => {
   res.status(201).json(v);
 });
 
-app.patch('/api/vouchers/:id', requireStaff, (req, res) => {
+app.patch('/api/vouchers/:id', requireAdmin, (req, res) => {
   const v = db.vouchers.find((x) => x.id === req.params.id);
   if (!v) return res.status(404).json({ error: 'Not found' });
   if (typeof req.body?.active === 'boolean') v.active = req.body.active;
@@ -321,7 +338,7 @@ app.patch('/api/vouchers/:id', requireStaff, (req, res) => {
   res.json(v);
 });
 
-app.patch('/api/settings', requireStaff, (req, res) => {
+app.patch('/api/settings', requireAdmin, (req, res) => {
   const b = req.body || {};
   db.settings = { ...db.settings,
     rewardThreshold: num(b.rewardThreshold, 0, 1e6, db.settings.rewardThreshold),
@@ -330,7 +347,7 @@ app.patch('/api/settings', requireStaff, (req, res) => {
   res.json(db.settings);
 });
 
-app.get('/api/customers', requireStaff, (_req, res) => {
+app.get('/api/customers', requireAdmin, (_req, res) => {
   const ids = new Set([...Object.keys(db.customers), ...db.orders.map((o) => o.customerId).filter(Boolean)]);
   res.json([...ids].map(customerStats).sort((a, b) => b.spent - a.spent));
 });
@@ -369,7 +386,7 @@ app.post('/api/orders', (req, res) => {
     discount = Math.round(d.discount);
   }
   const net = round(subtotal - discount);
-  const serviceFee = Math.round(net * SERVICE_FEE_RATE);
+  const serviceFee = Math.round(net * db.content.bar.serviceFeeRate);
   const tip = Math.round(Math.min(subtotal, Math.max(0, Number(b.tip) || 0)));
   const now = Date.now();
   const order = { id: uid(), code: code('RZ'), createdAt: now, updatedAt: now, source: 'app',
@@ -431,7 +448,12 @@ app.post('/api/bookings', (req, res) => {
   if (!booking.spaceId || !/^\d{4}-\d{2}-\d{2}$/.test(booking.date || '') || !/^\d{2}:\d{2}$/.test(booking.time || ''))
     return res.status(400).json({ error: 'Invalid booking details' });
   if (!booking.customer || !booking.phone) return res.status(400).json({ error: 'Name and phone required' });
-  const clash = !MULTI_PARTY_SPACES.includes(booking.spaceId) && db.bookings.some((x) =>
+  const space = db.spaces.find((x) => x.id === booking.spaceId && x.active !== false);
+  if (!space) return res.status(400).json({ error: 'That space is not available for booking.' });
+  booking.spaceName = space.name;
+  if (booking.guests < space.capacity[0] || booking.guests > space.capacity[1])
+    return res.status(400).json({ error: `${space.name} fits ${space.capacity[0]}–${space.capacity[1]} guests.` });
+  const clash = !space.multiParty && db.bookings.some((x) =>
     x.spaceId === booking.spaceId && x.date === booking.date && x.time === booking.time && ACTIVE_BOOKING.includes(x.status));
   if (clash) return res.status(409).json({ error: 'That slot was just booked — please pick another time.' });
   db.bookings.unshift(booking);
@@ -520,7 +542,7 @@ function cleanEvent(b, prev = {}) {
     published: typeof b.published === 'boolean' ? b.published : prev.published ?? true,
   };
 }
-app.post('/api/events', requireStaff, (req, res) => {
+app.post('/api/events', requireAdmin, (req, res) => {
   const ev = { id: uid(), createdAt: Date.now(), ...cleanEvent(req.body || {}) };
   if (!ev.title || !ev.startsAt) return res.status(400).json({ error: 'Title and start time required' });
   if (req.body.image) ev.image = saveImage(req.body.image) || undefined;
@@ -528,7 +550,7 @@ app.post('/api/events', requireStaff, (req, res) => {
   save(); pushEvents();
   res.status(201).json(ev);
 });
-app.patch('/api/events/:id', requireStaff, (req, res) => {
+app.patch('/api/events/:id', requireAdmin, (req, res) => {
   const i = db.events.findIndex((e) => e.id === req.params.id);
   if (i < 0) return res.status(404).json({ error: 'Not found' });
   const prev = db.events[i];
@@ -539,7 +561,7 @@ app.patch('/api/events/:id', requireStaff, (req, res) => {
   save(); pushEvents();
   res.json(next);
 });
-app.delete('/api/events/:id', requireStaff, (req, res) => {
+app.delete('/api/events/:id', requireAdmin, (req, res) => {
   const ev = db.events.find((e) => e.id === req.params.id);
   if (!ev) return res.status(404).json({ error: 'Not found' });
   if (db.tickets.some((t) => t.eventId === ev.id && t.status !== 'cancelled'))
@@ -703,6 +725,82 @@ app.post('/api/payments/:id/status', async (req, res) => {
 
 app.get('/api/payments', requireStaff, (_req, res) => res.json(db.payments.slice(0, 200)));
 
+// ---------- app content & spaces (admin) ----------
+function pushContent() { for (const c of clients) send(c, 'content', db.content); }
+function pushSpaces() { for (const c of clients) send(c, 'spaces', c.staff ? db.spaces : db.spaces.filter((x) => x.active !== false)); }
+/** value: data URL → save new image; null → remove; undefined → keep */
+function updateImage(prev, value) {
+  if (value === undefined) return prev;
+  if (value === null || value === '') { removeImage(prev); return null; }
+  if (typeof value === 'string' && value.startsWith('data:')) { const url = saveImage(value); if (url) { removeImage(prev); return url; } }
+  return prev;
+}
+
+app.patch('/api/content', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const c = db.content;
+  if (b.bar) c.bar = { ...c.bar,
+    name: str(b.bar.name, 40) ?? c.bar.name, tagline: str(b.bar.tagline, 60) ?? c.bar.tagline,
+    address: str(b.bar.address, 120) ?? c.bar.address, hours: str(b.bar.hours, 60) ?? c.bar.hours,
+    phone: str(b.bar.phone, 30) ?? c.bar.phone, serviceFeeRate: b.bar.serviceFeeRate !== undefined ? num(b.bar.serviceFeeRate, 0, 0.3, c.bar.serviceFeeRate) : c.bar.serviceFeeRate };
+  if (b.welcome) {
+    c.welcome = { ...c.welcome, title: str(b.welcome.title, 80) ?? c.welcome.title, subtitle: str(b.welcome.subtitle, 200) ?? c.welcome.subtitle };
+    if (Array.isArray(b.welcome.images)) {
+      // array of: existing URL (keep) | data URL (new) — up to 6; removed URLs are deleted
+      const next = b.welcome.images.slice(0, 6).map((v) => (typeof v === 'string' && v.startsWith('data:') ? saveImage(v) : v)).filter((v) => typeof v === 'string' && v.startsWith('/uploads/'));
+      for (const old of c.welcome.images) if (!next.includes(old)) removeImage(old);
+      c.welcome.images = next;
+    }
+  }
+  if (b.home) c.home = { ...c.home, headline: str(b.home.headline, 80) ?? c.home.headline,
+    orderImage: updateImage(c.home.orderImage, b.home.orderImage), bookImage: updateImage(c.home.bookImage, b.home.bookImage) };
+  save(); pushContent();
+  res.json(c);
+});
+
+function cleanSpace(b, prev = {}) {
+  const cap = Array.isArray(b.capacity) ? [num(b.capacity[0], 1, 1000, 1), num(b.capacity[1], 1, 1000, 10)] : prev.capacity ?? [1, 10];
+  if (cap[1] < cap[0]) cap[1] = cap[0];
+  return {
+    name: str(b.name, 60) ?? prev.name, description: str(b.description, 300) ?? prev.description ?? '',
+    emoji: str(b.emoji, 8) ?? prev.emoji ?? '🛋️',
+    gradient: Array.isArray(b.gradient) && b.gradient.length === 2 ? b.gradient.map((g) => String(g).slice(0, 9)) : prev.gradient ?? ['#7C5CFF', '#1E1442'],
+    capacity: cap, minSpend: b.minSpend !== undefined ? num(b.minSpend, 0, 1e7, 0) : prev.minSpend ?? 0,
+    perks: Array.isArray(b.perks) ? b.perks.map((p) => str(p, 30)).filter(Boolean).slice(0, 6) : prev.perks ?? [],
+    multiParty: typeof b.multiParty === 'boolean' ? b.multiParty : prev.multiParty ?? false,
+    active: typeof b.active === 'boolean' ? b.active : prev.active ?? true,
+  };
+}
+app.post('/api/spaces', requireAdmin, (req, res) => {
+  const sp = { id: `space-${crypto.randomBytes(3).toString('hex')}`, ...cleanSpace(req.body || {}) };
+  if (!sp.name) return res.status(400).json({ error: 'Name required' });
+  sp.image = updateImage(undefined, req.body.image) || undefined;
+  db.spaces.push(sp);
+  save(); pushSpaces();
+  res.status(201).json(sp);
+});
+app.patch('/api/spaces/:id', requireAdmin, (req, res) => {
+  const i = db.spaces.findIndex((x) => x.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: 'Not found' });
+  const prev = db.spaces[i];
+  const next = { ...prev, ...cleanSpace(req.body || {}, prev) };
+  const img = updateImage(prev.image, req.body.image);
+  if (img) next.image = img; else delete next.image;
+  db.spaces[i] = next;
+  save(); pushSpaces();
+  res.json(next);
+});
+app.delete('/api/spaces/:id', requireAdmin, (req, res) => {
+  const sp = db.spaces.find((x) => x.id === req.params.id);
+  if (!sp) return res.status(404).json({ error: 'Not found' });
+  if (db.bookings.some((b) => b.spaceId === sp.id && ['pending', 'confirmed'].includes(b.status) && b.date >= new Date().toISOString().slice(0, 10)))
+    return res.status(409).json({ error: 'This space has upcoming bookings — hide it instead (untick "Bookable").' });
+  removeImage(sp.image);
+  db.spaces = db.spaces.filter((x) => x.id !== sp.id);
+  save(); pushSpaces();
+  res.json({ ok: true });
+});
+
 // ---------- menu management ----------
 function cleanItem(b, prev = {}) {
   const opts = Array.isArray(b.options) ? b.options.slice(0, 6).map((o) => ({
@@ -729,7 +827,7 @@ function cleanItem(b, prev = {}) {
 }
 function pushMenu() { for (const c of clients) send(c, 'menu', db.menu); }
 
-app.post('/api/menu', requireStaff, (req, res) => {
+app.post('/api/menu', requireAdmin, (req, res) => {
   const item = { id: `item-${crypto.randomBytes(4).toString('hex')}`, ...cleanItem(req.body || {}) };
   if (!item.name) return res.status(400).json({ error: 'Name required' });
   if (req.body.image) item.image = saveImage(req.body.image) || undefined;
@@ -737,7 +835,7 @@ app.post('/api/menu', requireStaff, (req, res) => {
   save(); pushMenu();
   res.status(201).json(item);
 });
-app.patch('/api/menu/:id', requireStaff, (req, res) => {
+app.patch('/api/menu/:id', requireAdmin, (req, res) => {
   const i = db.menu.findIndex((m) => m.id === req.params.id);
   if (i < 0) return res.status(404).json({ error: 'Not found' });
   const prev = db.menu[i];
@@ -750,7 +848,7 @@ app.patch('/api/menu/:id', requireStaff, (req, res) => {
   res.json(next);
 });
 // Bulk offer: set (percent) or clear (percent = null) offer prices for a whole category
-app.post('/api/menu/offer', requireStaff, (req, res) => {
+app.post('/api/menu/offer', requireAdmin, (req, res) => {
   const { category, percent } = req.body || {};
   const pct = percent == null ? null : num(percent, 1, 90, null);
   let n = 0;
@@ -762,7 +860,7 @@ app.post('/api/menu/offer', requireStaff, (req, res) => {
   save(); pushMenu();
   res.json({ updated: n });
 });
-app.delete('/api/menu/:id', requireStaff, (req, res) => {
+app.delete('/api/menu/:id', requireAdmin, (req, res) => {
   const item = db.menu.find((m) => m.id === req.params.id);
   if (!item) return res.status(404).json({ error: 'Not found' });
   removeImage(item.image);
@@ -784,7 +882,7 @@ function cleanAd(b, prev = {}) {
     active: typeof b.active === 'boolean' ? b.active : prev.active ?? true,
   };
 }
-app.post('/api/ads', requireStaff, (req, res) => {
+app.post('/api/ads', requireAdmin, (req, res) => {
   const ad = { id: uid(), createdAt: Date.now(), ...cleanAd(req.body || {}) };
   if (!ad.title) return res.status(400).json({ error: 'Title required' });
   if (req.body.image) ad.image = saveImage(req.body.image) || undefined;
@@ -792,7 +890,7 @@ app.post('/api/ads', requireStaff, (req, res) => {
   save(); pushAds();
   res.status(201).json(ad);
 });
-app.patch('/api/ads/:id', requireStaff, (req, res) => {
+app.patch('/api/ads/:id', requireAdmin, (req, res) => {
   const i = db.ads.findIndex((x) => x.id === req.params.id);
   if (i < 0) return res.status(404).json({ error: 'Not found' });
   const prev = db.ads[i];
@@ -803,7 +901,7 @@ app.patch('/api/ads/:id', requireStaff, (req, res) => {
   save(); pushAds();
   res.json(next);
 });
-app.delete('/api/ads/:id', requireStaff, (req, res) => {
+app.delete('/api/ads/:id', requireAdmin, (req, res) => {
   const ad = db.ads.find((x) => x.id === req.params.id);
   if (!ad) return res.status(404).json({ error: 'Not found' });
   removeImage(ad.image);
@@ -813,13 +911,13 @@ app.delete('/api/ads/:id', requireStaff, (req, res) => {
 });
 
 // ---------- demo data ----------
-app.post('/api/demo', requireStaff, (_req, res) => {
+app.post('/api/demo', requireAdmin, (_req, res) => {
   const now = Date.now();
   const today = new Date().toISOString().slice(0, 10);
   const mk = (customer, mins, status, table, items) => {
     const lines = items.map(([itemId, name, unitPrice, qty]) => ({ key: itemId, itemId, name, unitPrice, qty, choices: [] }));
     const subtotal = round(lines.reduce((s, l) => s + l.unitPrice * l.qty, 0));
-    const serviceFee = Math.round(subtotal * SERVICE_FEE_RATE);
+    const serviceFee = Math.round(subtotal * db.content.bar.serviceFeeRate);
     return { id: uid(), code: code('RZ'), createdAt: now - mins * 60000, updatedAt: now, customer, customerId: `demo-${customer}`,
       lines, subtotal, discount: 0, serviceFee, tip: 300, total: round(subtotal + serviceFee + 300), fulfilment: 'table', table, status };
   };
@@ -842,6 +940,7 @@ app.post('/api/demo', requireStaff, (_req, res) => {
 const dist = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(dist)) {
   app.use(express.static(dist));
+  app.use('/admin', express.static(dist));
   app.get(/^\/(?!api\/|uploads\/).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
 }
 
@@ -850,4 +949,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`M-Pesa: ${mpesaInfo().mode} mode, till ${mpesaInfo().till}${mpesaInfo().mode !== 'mock' && !PUBLIC_URL ? ' — WARNING: no public URL, payment callbacks cannot arrive' : ''}`);
   console.log(`Data: ${DATA_FILE}`);
   if (STAFF_PIN === '1234') console.log('⚠  Using default staff PIN 1234 — set STAFF_PIN in production.');
+  if (!process.env.ADMIN_PIN) console.log(`⚠  ADMIN_PIN not set — using ${process.env.STAFF_PIN ? 'STAFF_PIN' : 'default 0000'} for admin. Set ADMIN_PIN in production.`);
 });
