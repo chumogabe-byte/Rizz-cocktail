@@ -28,9 +28,9 @@ const DEFAULT_SETTINGS = { rewardThreshold: 100, rewardValue: 15, pointsPerUnit:
 const now0 = Date.now();
 const DEFAULT_ADS = [
   { id: 'ad-happy', title: 'Happy Hour 2-for-1', subtitle: 'All classic cocktails, 4–7 PM daily', emoji: '🍸', theme: 'purple',
-    cta: { label: 'Order now', type: 'menu', target: 'cocktails' }, placements: ['home', 'menu', 'tv'], active: true, createdAt: now0 },
+    cta: { label: 'Order now', type: 'menu', target: 'cocktails' }, placements: ['home', 'menu', 'events', 'tv'], active: true, createdAt: now0 },
   { id: 'ad-app', title: '10% off your first app order', subtitle: 'Use code WELCOME10 at checkout', emoji: '📱', theme: 'lime',
-    cta: { label: 'Get code', type: 'code', target: 'WELCOME10' }, placements: ['home', 'menu', 'social', 'tv'], active: true, createdAt: now0 },
+    cta: { label: 'Get code', type: 'code', target: 'WELCOME10' }, placements: ['home', 'menu', 'social', 'events', 'tv'], active: true, createdAt: now0 },
   { id: 'ad-rooftop', title: 'Rooftop DJ Weekends', subtitle: 'Fri & Sat from 9 PM — book your table', emoji: '🎧', theme: 'blue',
     cta: { label: 'Book', type: 'book', target: 'rooftop' }, placements: ['home', 'book', 'tv'], active: true, createdAt: now0 },
   { id: 'ad-shots', title: 'Shot Roulette Thursdays', subtitle: '5 shots for the price of 4', emoji: '🥃', theme: 'orange',
@@ -43,9 +43,33 @@ const DEFAULT_VOUCHERS = [
     perCustomer: 1, firstOrderOnly: true, active: true, source: 'promo', redemptions: [], createdAt: now0 },
 ];
 
+// Demo events, dated relative to first run
+const dayAt = (days, hh) => { const d = new Date(); d.setDate(d.getDate() + days); d.setHours(hh, 0, 0, 0); return d.getTime(); };
+const nextDow = (dow) => { const d = new Date(); return (dow - d.getDay() + 7) % 7 || 7; };
+const DEFAULT_EVENTS = [
+  { id: 'ev-rooftop', title: 'Rooftop Sessions: Afro House', subtitle: 'Resident DJs till late', emoji: '🎧', theme: 'blue',
+    startsAt: dayAt(nextDow(5), 21), endsAt: dayAt(nextDow(5) + 1, 3), location: 'Rooftop Terrace',
+    description: 'Afro house & amapiano on the rooftop with city views, heaters and a fully stocked bar. Early-bird tickets include a welcome cocktail.',
+    ticketTypes: [{ id: 'tt-early', name: 'Early bird + welcome cocktail', price: 15, capacity: 60 }, { id: 'tt-reg', name: 'Regular', price: 20, capacity: 150 }, { id: 'tt-vip', name: 'VIP table (6 guests)', price: 250, capacity: 6 }],
+    featured: true, published: true, createdAt: now0 },
+  { id: 'ev-whisky', title: 'Whisky Tasting Masterclass', subtitle: '6 drams · guided by our head bartender', emoji: '🥃', theme: 'orange',
+    startsAt: dayAt(nextDow(3), 19), endsAt: dayAt(nextDow(3), 21), location: 'VIP Room',
+    description: 'Taste six whiskies from Scotland, Ireland, the US and Japan, paired with small bites. Limited seats.',
+    ticketTypes: [{ id: 'tt-seat', name: 'Seat', price: 45, capacity: 20 }], featured: true, published: true, createdAt: now0 },
+  { id: 'ev-ladies', title: 'Ladies Night', subtitle: 'Free welcome shot for the ladies', emoji: '💃', theme: 'pink',
+    startsAt: dayAt(nextDow(3), 20), endsAt: dayAt(nextDow(4), 1), location: 'Main Bar',
+    description: 'Every Wednesday — free welcome shot, cocktail specials and the best R&B all night. Free entry, RSVP to skip the queue.',
+    ticketTypes: [{ id: 'tt-free', name: 'Free RSVP', price: 0, capacity: 200 }], featured: false, published: true, createdAt: now0 },
+  { id: 'ev-football', title: 'Big Match Screening', subtitle: 'Giant screen · bucket deals', emoji: '⚽', theme: 'lime',
+    startsAt: dayAt(nextDow(6), 18), endsAt: dayAt(nextDow(6), 21), location: 'Main Bar',
+    description: 'Watch the big game on our giant screen. Reserve a table ticket and get a beer bucket at a special price.',
+    ticketTypes: [{ id: 'tt-entry', name: 'Entry', price: 0, capacity: 120 }, { id: 'tt-table', name: 'Table for 4 + bucket of 5', price: 40, capacity: 15 }],
+    featured: false, published: true, createdAt: now0 },
+];
+
 const SEED_MENU = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed-menu.json'), 'utf8'));
 
-let db = { menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
+let db = { events: DEFAULT_EVENTS, tickets: [], menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
 try {
   db = { ...db, ...JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) };
   db.settings = { ...DEFAULT_SETTINGS, ...db.settings };
@@ -113,11 +137,13 @@ const MULTI_PARTY_SPACES = ['bar-counter', 'rooftop'];
 function customerStats(customerId) {
   const mine = db.orders.filter((o) => o.customerId === customerId);
   const served = mine.filter((o) => o.status === 'served');
-  const spent = round(served.reduce((s, o) => s + o.total, 0));
+  const paidTickets = db.tickets.filter((t) => t.customerId === customerId && (t.status === 'paid' || t.status === 'checked-in'));
+  const spent = round(served.reduce((s, o) => s + o.total, 0) + paidTickets.reduce((s, t) => s + t.total, 0));
   const points = Math.floor(spent * db.settings.pointsPerUnit);
   const last = mine.reduce((m, o) => Math.max(m, o.createdAt), 0);
   const profile = db.customers[customerId] || {};
   return { customerId, name: profile.name || mine[0]?.customer || 'Guest', phone: profile.phone || mine[0]?.phone,
+    tickets: db.tickets.filter((t) => t.customerId === customerId && t.status !== 'cancelled').reduce((n, t) => n + t.units.length, 0),
     orders: served.length, totalOrders: mine.filter((o) => o.status !== 'cancelled').length, spent, points,
     lastVisit: last || null, posts: db.posts.filter((p) => p.customerId === customerId && !p.hidden).length,
     redeemed: db.vouchers.reduce((n, v) => n + v.redemptions.filter((r) => r.customerId === customerId).length, 0) };
@@ -178,7 +204,23 @@ function viewFor(c) {
     me: c.customerId ? customerStats(c.customerId) : null,
     settings: db.settings,
     menu: db.menu,
+    events: (c.staff ? db.events : db.events.filter((e) => e.published)).map(withSales),
+    tickets: c.staff ? db.tickets : db.tickets.filter((t) => t.customerId && t.customerId === c.customerId),
   };
+}
+/** Event + tickets sold per type (public — counts only). */
+function withSales(e) {
+  const sold = {};
+  for (const t of db.tickets) if (t.eventId === e.id && t.status !== 'cancelled') for (const l of t.lines) sold[l.typeId] = (sold[l.typeId] || 0) + l.qty;
+  return { ...e, sold };
+}
+function pushEvents() { for (const c of clients) send(c, 'events', (c.staff ? db.events : db.events.filter((e) => e.published)).map(withSales)); }
+function pushTicket(t) {
+  for (const c of clients) {
+    if (c.staff || (t.customerId && c.customerId === t.customerId)) send(c, 'ticket', t);
+    if (t.customerId && c.customerId === t.customerId) send(c, 'me', customerStats(t.customerId));
+  }
+  pushEvents();
 }
 function send(c, type, payload) { c.res.write(`event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`); }
 
@@ -451,6 +493,112 @@ app.delete('/api/posts/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- events & tickets ----------
+function cleanEvent(b, prev = {}) {
+  const types = Array.isArray(b.ticketTypes) ? b.ticketTypes.slice(0, 8).map((t) => ({
+    id: str(t.id, 40) || `tt-${crypto.randomBytes(3).toString('hex')}`, name: str(t.name, 50) || 'Ticket',
+    price: num(t.price, 0, 1e6, 0), capacity: num(t.capacity, 1, 100000, 100) })) : prev.ticketTypes ?? [];
+  const ts = (v, d) => (v === undefined ? d : Number(new Date(v)) || d);
+  return {
+    title: str(b.title, 80) ?? prev.title, subtitle: str(b.subtitle, 120) ?? prev.subtitle ?? '',
+    description: str(b.description, 1500) ?? prev.description ?? '', location: str(b.location, 60) ?? prev.location ?? '',
+    emoji: str(b.emoji, 8) ?? prev.emoji ?? '🎉', theme: str(b.theme, 20) ?? prev.theme ?? 'purple',
+    startsAt: ts(b.startsAt, prev.startsAt), endsAt: ts(b.endsAt, prev.endsAt),
+    ticketTypes: types.length ? types : [{ id: 'tt-free', name: 'Free RSVP', price: 0, capacity: 100 }],
+    featured: typeof b.featured === 'boolean' ? b.featured : prev.featured ?? false,
+    published: typeof b.published === 'boolean' ? b.published : prev.published ?? true,
+  };
+}
+app.post('/api/events', requireStaff, (req, res) => {
+  const ev = { id: uid(), createdAt: Date.now(), ...cleanEvent(req.body || {}) };
+  if (!ev.title || !ev.startsAt) return res.status(400).json({ error: 'Title and start time required' });
+  if (req.body.image) ev.image = saveImage(req.body.image) || undefined;
+  db.events.unshift(ev);
+  save(); pushEvents();
+  res.status(201).json(ev);
+});
+app.patch('/api/events/:id', requireStaff, (req, res) => {
+  const i = db.events.findIndex((e) => e.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: 'Not found' });
+  const prev = db.events[i];
+  const next = { ...prev, ...cleanEvent(req.body || {}, prev) };
+  if (req.body.image) { removeImage(prev.image); next.image = saveImage(req.body.image) || undefined; }
+  if (req.body.removeImage) { removeImage(prev.image); delete next.image; }
+  db.events[i] = next;
+  save(); pushEvents();
+  res.json(next);
+});
+app.delete('/api/events/:id', requireStaff, (req, res) => {
+  const ev = db.events.find((e) => e.id === req.params.id);
+  if (!ev) return res.status(404).json({ error: 'Not found' });
+  if (db.tickets.some((t) => t.eventId === ev.id && t.status !== 'cancelled'))
+    return res.status(409).json({ error: 'Tickets have been sold — unpublish the event instead, or cancel its tickets first.' });
+  removeImage(ev.image);
+  db.events = db.events.filter((e) => e.id !== ev.id);
+  save(); pushEvents();
+  res.json({ ok: true });
+});
+
+app.post('/api/events/:id/tickets', (req, res) => {
+  const ev = db.events.find((e) => e.id === req.params.id && e.published);
+  if (!ev) return res.status(404).json({ error: 'Event not found' });
+  if ((ev.endsAt || ev.startsAt) < Date.now()) return res.status(400).json({ error: 'This event has already happened.' });
+  const b = req.body || {};
+  const customerId = str(b.customerId, 64);
+  const customer = str(b.customer, 60), phone = str(b.phone, 30);
+  if (!customerId || !customer) return res.status(400).json({ error: 'Please sign in first' });
+  const sold = withSales(ev).sold;
+  const lines = [];
+  for (const it of Array.isArray(b.items) ? b.items : []) {
+    const tt = ev.ticketTypes.find((t) => t.id === it.typeId);
+    const qty = Math.floor(num(it.qty, 0, 20, 0));
+    if (!tt || !qty) continue;
+    const left = tt.capacity - (sold[tt.id] || 0);
+    if (qty > left) return res.status(409).json({ error: left > 0 ? `Only ${left} "${tt.name}" ticket(s) left.` : `"${tt.name}" is sold out.` });
+    lines.push({ typeId: tt.id, name: tt.name, price: tt.price, qty });
+  }
+  if (!lines.length) return res.status(400).json({ error: 'Choose at least one ticket' });
+  const total = round(lines.reduce((s, l) => s + l.price * l.qty, 0));
+  const units = lines.flatMap((l) => Array.from({ length: l.qty }, () => ({
+    code: `TK-${crypto.randomBytes(3).toString('hex').toUpperCase()}`, typeId: l.typeId, typeName: l.name, checkedInAt: null })));
+  const t = { id: uid(), code: code('TO'), createdAt: Date.now(), eventId: ev.id, eventTitle: ev.title, startsAt: ev.startsAt,
+    location: ev.location, customerId, customer, phone, lines, total, units,
+    status: total === 0 ? 'paid' : 'reserved' }; // free RSVPs need no payment
+  db.tickets.unshift(t);
+  save(); pushTicket(t);
+  res.status(201).json(t);
+});
+
+app.patch('/api/tickets/:id', (req, res) => {
+  const t = db.tickets.find((x) => x.id === req.params.id);
+  if (!t) return res.status(404).json({ error: 'Not found' });
+  const { status, customerId } = req.body || {};
+  if (!['reserved', 'paid', 'checked-in', 'cancelled'].includes(status)) return res.status(400).json({ error: 'Bad status' });
+  const owner = customerId && customerId === t.customerId;
+  if (!isStaff(req) && !(owner && status === 'cancelled' && t.status === 'reserved')) return res.status(403).json({ error: 'Not allowed' });
+  t.status = status;
+  if (status === 'checked-in') t.units.forEach((u) => (u.checkedInAt ||= Date.now()));
+  const rewarded = (status === 'paid' || status === 'checked-in') && issueRewards(t.customerId);
+  save(); pushTicket(t);
+  if (rewarded) pushVouchers(t.customerId);
+  res.json(t);
+});
+
+// Door check-in: scan/type a single ticket code
+app.post('/api/tickets/checkin', requireStaff, (req, res) => {
+  const c = String(req.body?.code || '').trim().toUpperCase();
+  const t = db.tickets.find((x) => x.units.some((u) => u.code === c));
+  if (!t) return res.status(404).json({ error: `No ticket ${c}` });
+  if (t.status === 'cancelled') return res.status(400).json({ error: `${c} was cancelled` });
+  const u = t.units.find((x) => x.code === c);
+  if (u.checkedInAt) return res.status(409).json({ error: `${c} already checked in at ${new Date(u.checkedInAt).toLocaleTimeString()}` });
+  u.checkedInAt = Date.now();
+  const wasUnpaid = t.status === 'reserved';
+  if (t.units.every((x) => x.checkedInAt)) t.status = 'checked-in';
+  save(); pushTicket(t);
+  res.json({ ticket: t, unit: u, unpaid: wasUnpaid });
+});
+
 // ---------- menu management ----------
 function cleanItem(b, prev = {}) {
   const opts = Array.isArray(b.options) ? b.options.slice(0, 6).map((o) => ({
@@ -520,7 +668,7 @@ app.delete('/api/menu/:id', requireStaff, (req, res) => {
 });
 
 // ---------- ads / offers ----------
-const PLACEMENTS = ['home', 'menu', 'book', 'social', 'tv'];
+const PLACEMENTS = ['home', 'menu', 'book', 'social', 'events', 'tv'];
 const CTA_TYPES = ['none', 'menu', 'item', 'book', 'code', 'social'];
 function cleanAd(b, prev = {}) {
   const cta = b.cta || prev.cta || {};

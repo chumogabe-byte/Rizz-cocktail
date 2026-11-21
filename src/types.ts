@@ -106,7 +106,7 @@ export interface Post {
   removed?: boolean;
 }
 
-export type Placement = 'home' | 'menu' | 'book' | 'social' | 'tv';
+export type Placement = 'home' | 'menu' | 'book' | 'social' | 'events' | 'tv';
 export interface Ad {
   id: string;
   title: string;
@@ -149,6 +149,43 @@ export interface CustomerStats {
   lastVisit: number | null;
   posts: number;
   redeemed: number;
+  tickets?: number;
 }
 
 export interface Settings { rewardThreshold: number; rewardValue: number; pointsPerUnit: number }
+
+export interface TicketType { id: string; name: string; price: number; capacity: number }
+export interface BarEvent {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  location: string;
+  emoji: string;
+  theme: string;
+  image?: string;
+  startsAt: number;
+  endsAt?: number;
+  ticketTypes: TicketType[];
+  sold: Record<string, number>;
+  featured: boolean;
+  published: boolean;
+  createdAt: number;
+}
+export type TicketStatus = 'reserved' | 'paid' | 'checked-in' | 'cancelled';
+export interface TicketOrder {
+  id: string;
+  code: string;
+  createdAt: number;
+  eventId: string;
+  eventTitle: string;
+  startsAt: number;
+  location: string;
+  customerId: string;
+  customer: string;
+  phone?: string;
+  lines: { typeId: string; name: string; price: number; qty: number }[];
+  total: number;
+  units: { code: string; typeId: string; typeName: string; checkedInAt: number | null }[];
+  status: TicketStatus;
+}

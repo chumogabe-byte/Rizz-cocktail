@@ -510,3 +510,46 @@ select { width: 100%; background: var(--bg-2); border: 1px solid var(--line); bo
 .icon-btn.sm-icon { width: 40px; height: 44px; font-size: 14px; color: var(--muted); }
 .thumb { width: 84px; height: 84px; object-fit: cover; border-radius: 16px; }
 @media (max-width: 600px) { .menu-admin-row { flex-wrap: wrap; } }
+
+/* ---------- Events & offers: stacked 1:1 tiles ---------- */
+.tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tile { position: relative; aspect-ratio: 1 / 1; border-radius: 20px; overflow: hidden; text-align: left; color: #fff; border: 1px solid rgba(255,255,255,.08); display: block; width: 100%; transition: transform .15s; }
+.tile:active { transform: scale(.98); }
+.tile::after { content: ''; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, rgba(8,6,16,.85)); pointer-events: none; }
+.tile-emoji { position: absolute; top: 46%; left: 50%; transform: translate(-50%, -60%); font-size: 64px; filter: drop-shadow(0 10px 20px rgba(0,0,0,.45)); }
+.tile-date { position: absolute; top: 10px; left: 10px; z-index: 1; width: 44px; padding: 4px 0; border-radius: 12px; background: rgba(255,255,255,.95); color: #0e0b1a; display: flex; flex-direction: column; align-items: center; line-height: 1.05; }
+.tile-date small { font-size: 9.5px; font-weight: 800; color: var(--purple); }
+.tile-date b { font-size: 18px; }
+.tile-price { position: absolute; top: 10px; right: 10px; z-index: 1; font-size: 10.5px; font-weight: 800; padding: 4px 8px; border-radius: 8px; background: var(--lime); color: var(--lime-ink); }
+.tile-price.out { background: rgba(14,11,26,.85); color: var(--danger); }
+.tile-price.offer { background: #fff; color: #0e0b1a; }
+.tile-copy { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 2px; }
+.tile-copy strong { font-size: 14px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tile-copy small { font-size: 11px; opacity: .85; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.tile.ink .tile-copy { color: #fff; }
+.tile-sm { flex: none; width: 150px; scroll-snap-align: start; }
+.tile-sm .tile-emoji { font-size: 48px; }
+.avatar-btn { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, var(--purple), #c026d3); font-weight: 800; font-size: 17px; }
+
+.event-hero { position: relative; aspect-ratio: 1 / 1; max-height: 460px; width: 100%; border-radius: 0 0 32px 32px; display: grid; place-items: center; overflow: hidden; }
+.event-hero-emoji { font-size: 150px; filter: drop-shadow(0 16px 30px rgba(0,0,0,.45)); }
+.ticket-type { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); }
+.ticket-type.off { opacity: .5; }
+.ticket-order { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.ticket-order.compact { opacity: .65; padding: 12px 14px; }
+.ticket-order-head { display: flex; gap: 10px; align-items: flex-start; }
+.qr-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.qr { margin: 0; background: #fff; color: #0e0b1a; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.qr img { width: 100%; max-width: 160px; aspect-ratio: 1; }
+.qr figcaption { display: flex; flex-direction: column; align-items: center; font-size: 12px; text-align: center; }
+.qr figcaption b { font-family: ui-monospace, monospace; letter-spacing: .05em; }
+.qr.used { opacity: .45; }
+
+.event-admin { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.event-admin.off, .event-admin.past { opacity: .65; }
+.event-admin-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.event-thumb { width: 72px; height: 72px; flex: none; border-radius: 14px; display: grid; place-items: center; font-size: 34px; }
+.event-thumb.lg { width: 120px; height: 120px; font-size: 56px; }
+.cap-bar { height: 6px; border-radius: 3px; background: var(--bg-2); overflow: hidden; margin-top: 4px; max-width: 360px; }
+.cap-bar span { display: block; height: 100%; background: var(--lime); }
+.table.sales .tr { grid-template-columns: 1.2fr 2fr .7fr .7fr 1.6fr; }

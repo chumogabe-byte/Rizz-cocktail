@@ -1,4 +1,4 @@
-import type { MenuItem, Ad, Booking, CustomerStats, Order, Post, Settings, Voucher } from './types';
+import type { BarEvent, TicketOrder, MenuItem, Ad, Booking, CustomerStats, Order, Post, Settings, Voucher } from './types';
 
 /**
  * Where the backend lives.
@@ -47,6 +47,8 @@ export interface Snapshot {
   me: CustomerStats | null;
   settings: Settings;
   menu: MenuItem[];
+  events: BarEvent[];
+  tickets: TicketOrder[];
 }
 
 type Handlers = {
@@ -58,6 +60,8 @@ type Handlers = {
   vouchers: (v: Voucher[]) => void;
   me: (m: CustomerStats) => void;
   menu: (m: MenuItem[]) => void;
+  events: (e: BarEvent[]) => void;
+  ticket: (t: TicketOrder) => void;
   status: (online: boolean) => void;
 };
 
@@ -80,7 +84,7 @@ export function subscribe(who: { customerId: string; token: string | null }, h: 
     const on = <T,>(type: string, fn: (d: T) => void) => es!.addEventListener(type, (e) => fn(JSON.parse((e as MessageEvent).data)));
     on<Snapshot>('snapshot', (d) => { h.status(true); h.snapshot(d); });
     on('order', h.order); on('booking', h.booking); on('post', h.post);
-    on('ads', h.ads); on('vouchers', h.vouchers); on('me', h.me); on('menu', h.menu);
+    on('ads', h.ads); on('vouchers', h.vouchers); on('me', h.me); on('menu', h.menu); on('events', h.events); on('ticket', h.ticket);
     es.onerror = () => {
       h.status(false);
       es?.close();

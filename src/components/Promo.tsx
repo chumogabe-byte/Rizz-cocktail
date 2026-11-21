@@ -14,9 +14,9 @@ export const AD_THEMES: Record<string, [string, string]> = {
   gold: ['#FCD34D', '#3A2700'],
   red: ['#F43F5E', '#3F0613'],
 };
-const darkText = (theme: string) => theme === 'lime' || theme === 'gold';
+export const darkText = (theme: string) => theme === 'lime' || theme === 'gold';
 
-export function adBackground(ad: Ad) {
+export function adBackground(ad: { theme: string; image?: string }) {
   const [a, b] = AD_THEMES[ad.theme] ?? AD_THEMES.purple;
   return ad.image
     ? `linear-gradient(90deg, rgba(10,8,20,.85) 0%, rgba(10,8,20,.35) 60%, rgba(10,8,20,.1) 100%), center/cover url("${mediaUrl(ad.image)}")`
@@ -38,48 +38,69 @@ export function useAdAction(nav: Nav) {
   };
 }
 
-/** Auto-advancing, swipeable hero carousel fed by the ads placed on this page. */
-export function HeroSlider({ placement, nav }: { placement: Placement; nav: Nav }) {
-  const ads = useStore((s) => s.ads).filter((a) => a.active && a.placements.includes(placement));
+export interface Slide {
+  key: string;
+  kicker: string;
+  title: string;
+  subtitle?: string;
+  cta?: string;
+  background: string;
+  emoji?: string;
+  ink?: boolean;
+  onClick: () => void;
+}
+
+/** Auto-advancing, swipeable hero carousel. */
+export function Carousel({ slides }: { slides: Slide[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
-  const act = useAdAction(nav);
 
   useEffect(() => {
-    if (ads.length < 2 || paused) return;
+    if (slides.length < 2 || paused) return;
     const t = setInterval(() => {
       const el = ref.current;
       if (!el) return;
-      const next = (Math.round(el.scrollLeft / el.clientWidth) + 1) % ads.length;
+      const next = (Math.round(el.scrollLeft / el.clientWidth) + 1) % slides.length;
       el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' });
     }, 4500);
     return () => clearInterval(t);
-  }, [ads.length, paused]);
+  }, [slides.length, paused]);
 
-  if (!ads.length) return null;
+  if (!slides.length) return null;
   return (
     <div className="hero" onPointerDown={() => setPaused(true)} onPointerUp={() => setTimeout(() => setPaused(false), 4000)}>
       <div className="hero-track" ref={ref} onScroll={(e) => setIdx(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
-        {ads.map((ad) => (
-          <div key={ad.id} className="hero-slide-wrap" onClick={() => act(ad)} role="button" tabIndex={0}>
-          <div className={`hero-slide ${darkText(ad.theme) && !ad.image ? 'ink' : ''}`} style={{ background: adBackground(ad) }}>
-            <div className="hero-copy">
-              <span className="hero-kicker">Latest offer</span>
-              <h2>{ad.title}</h2>
-              {ad.subtitle && <p>{ad.subtitle}</p>}
-              {ad.cta.type !== 'none' && <span className="hero-cta">{ad.cta.label || 'View'} →</span>}
+        {slides.map((sl) => (
+          <div key={sl.key} className="hero-slide-wrap" onClick={sl.onClick} role="button" tabIndex={0}>
+            <div className={`hero-slide ${sl.ink ? 'ink' : ''}`} style={{ background: sl.background }}>
+              <div className="hero-copy">
+                <span className="hero-kicker">{sl.kicker}</span>
+                <h2>{sl.title}</h2>
+                {sl.subtitle && <p>{sl.subtitle}</p>}
+                {sl.cta && <span className="hero-cta">{sl.cta} →</span>}
+              </div>
+              {sl.emoji && <span className="hero-emoji">{sl.emoji}</span>}
             </div>
-            {!ad.image && <span className="hero-emoji">{ad.emoji}</span>}
-          </div>
           </div>
         ))}
       </div>
-      {ads.length > 1 && (
-        <div className="hero-dots">{ads.map((a, i) => <span key={a.id} className={i === idx ? 'on' : ''} />)}</div>
-      )}
+      {slides.length > 1 && <div className="hero-dots">{slides.map((sl, i) => <span key={sl.key} className={i === idx ? 'on' : ''} />)}</div>}
     </div>
   );
+}
+
+export const adSlide = (ad: Ad, act: (ad: Ad) => void): Slide => ({
+  key: ad.id, kicker: 'Latest offer', title: ad.title, subtitle: ad.subtitle, background: adBackground(ad),
+  cta: ad.cta.type !== 'none' ? ad.cta.label || 'View' : undefined, emoji: ad.image ? undefined : ad.emoji,
+  ink: darkText(ad.theme) && !ad.image, onClick: () => act(ad),
+});
+
+/** Hero carousel fed by the ads placed on this page. */
+export function HeroSlider({ placement, nav, extra = [] }: { placement: Placement; nav: Nav; extra?: Slide[] }) {
+  const ads = useStore((s) => s.ads).filter((a) => a.active && a.placements.includes(placement));
+  const act = useAdAction(nav);
+  return <Carousel slides={[...extra, ...ads.map((a) => adSlide(a, act))]} />;
 }
 
 /** Compact in-feed ad card. `index` picks which ad to show so multiple banners on a page rotate. */

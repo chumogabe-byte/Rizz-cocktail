@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
+import type { BarEvent, TicketOrder, TicketStatus, MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
 import { api, subscribe, type Snapshot } from '../api';
 import seedMenu from '../../server/seed-menu.json';
 
@@ -23,6 +23,8 @@ export interface State {
   me: CustomerStats | null;
   settings: Settings;
   menu: MenuItem[];
+  events: BarEvent[];
+  tickets: TicketOrder[];
   online: boolean;
   loaded: boolean;
   staffToken: string | null;
@@ -48,6 +50,7 @@ function load(): State {
     orders: [], bookings: [], posts: [], ads: [], vouchers: [], me: null,
     settings: { rewardThreshold: 100, rewardValue: 15, pointsPerUnit: 1 },
     menu: seedMenu as MenuItem[],
+    events: [], tickets: [],
     online: false, loaded: false,
     staffToken: token,
     toast: null,
@@ -86,6 +89,8 @@ export function connect() {
     vouchers: (vouchers) => set({ vouchers }),
     me: (me) => set({ me }),
     menu: (menu) => set({ menu }),
+    events: (events) => set({ events }),
+    ticket: (t) => set({ tickets: upsert(state.tickets, t) }),
     status: (online) => { if (online !== state.online) set({ online }); },
   });
 }
@@ -211,6 +216,24 @@ export const actions = {
     return api<{ updated: number }>('/api/menu/offer', { method: 'POST', ...staff(), body: { category, percent } });
   },
   async deleteMenuItem(id: string) { await api(`/api/menu/${id}`, { method: 'DELETE', ...staff() }); },
+  // ---- events & tickets ----
+  async buyTickets(eventId: string, items: { typeId: string; qty: number }[]) {
+    const t = await api<TicketOrder>(`/api/events/${eventId}/tickets`, { method: 'POST',
+      body: { items, customerId: state.customerId, customer: state.user?.name, phone: state.user?.phone } });
+    set({ tickets: upsert(state.tickets, t) });
+    return t;
+  },
+  async setTicketStatus(id: string, status: TicketStatus) {
+    const t = await api<TicketOrder>(`/api/tickets/${id}`, { method: 'PATCH', ...staff(), body: { status, customerId: state.customerId } });
+    set({ tickets: upsert(state.tickets, t) });
+  },
+  checkIn(code: string) {
+    return api<{ ticket: TicketOrder; unit: TicketOrder['units'][number]; unpaid: boolean }>('/api/tickets/checkin', { method: 'POST', ...staff(), body: { code } });
+  },
+  async saveEvent(ev: Partial<BarEvent> & { image?: string; removeImage?: boolean }, id?: string) {
+    await api(id ? `/api/events/${id}` : '/api/events', { method: id ? 'PATCH' : 'POST', ...staff(), body: ev });
+  },
+  async deleteEvent(id: string) { await api(`/api/events/${id}`, { method: 'DELETE', ...staff() }); },
   async deleteAd(id: string) { await api(`/api/ads/${id}`, { method: 'DELETE', ...staff() }); },
   async createVoucher(v: Partial<Voucher>) { await api('/api/vouchers', { method: 'POST', ...staff(), body: v }); },
   async setVoucherActive(id: string, active: boolean) { await api(`/api/vouchers/${id}`, { method: 'PATCH', ...staff(), body: { active } }); },

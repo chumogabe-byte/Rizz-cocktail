@@ -13,6 +13,9 @@ export type Route =
   | { name: 'social' }
   | { name: 'rewards' }
   | { name: 'tv' }
+  | { name: 'events' }
+  | { name: 'event'; id: string }
+  | { name: 'tickets' }
   | { name: 'staff' };
 
 export type Nav = { go: (r: Route) => void; back: () => void };

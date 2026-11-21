@@ -4,6 +4,7 @@ import { CATEGORIES, sectionOf } from '../data/menu';
 import { ItemArt, Price } from '../components/ItemBits';
 import { AdBanner, HeroSlider } from '../components/Promo';
 import { mediaUrl } from '../api';
+import { eventBg, fmtDay, priceFrom, upcoming } from './Events';
 import { SPACES } from '../data/spaces';
 import { actions, cartCount, useStore } from '../store/store';
 import { Art } from '../components/Art';
@@ -37,10 +38,13 @@ export function Home({ nav }: { nav: Nav }) {
           <p className="muted small">Hey {user?.name.split(' ')[0]} 👋</p>
           <h1 className="display">What's your <span className="accent">vibe</span><br />tonight?</h1>
         </div>
-        <button className="icon-btn badge-wrap" onClick={() => nav.go({ name: 'cart' })} aria-label="Cart">
-          <Icon name="bag" />
-          {cartCount(cart) > 0 && <span className="badge">{cartCount(cart)}</span>}
-        </button>
+        <div className="row-gap">
+          <button className="icon-btn badge-wrap" onClick={() => nav.go({ name: 'cart' })} aria-label="Cart">
+            <Icon name="bag" />
+            {cartCount(cart) > 0 && <span className="badge">{cartCount(cart)}</span>}
+          </button>
+          <button className="avatar-btn" onClick={() => nav.go({ name: 'profile' })} aria-label="Profile">{user?.name.slice(0, 1).toUpperCase()}</button>
+        </div>
       </div>
 
       <div className="search">
@@ -122,6 +126,8 @@ export function Home({ nav }: { nav: Nav }) {
             </>
           )}
 
+          <EventsStrip nav={nav} />
+
           <RewardsCard nav={nav} />
 
           <SectionHead title="Browse menu" action="See all" onAction={() => nav.go({ name: 'menu' })} />
@@ -158,6 +164,25 @@ export function Home({ nav }: { nav: Nav }) {
         </>
       )}
     </div>
+  );
+}
+
+function EventsStrip({ nav }: { nav: Nav }) {
+  const events = upcoming(useStore((s) => s.events)).slice(0, 8);
+  if (!events.length) return null;
+  return (
+    <>
+      <SectionHead title="🎉 Upcoming events" action="All events" onAction={() => nav.go({ name: 'events' })} />
+      <div className="h-scroll">
+        {events.map((e) => (
+          <button key={e.id} className="tile tile-sm" style={{ background: eventBg(e) }} onClick={() => nav.go({ name: 'event', id: e.id })}>
+            {!e.image && <span className="tile-emoji">{e.emoji}</span>}
+            <span className="tile-date"><small>{fmtDay(e.startsAt).dow}</small><b>{fmtDay(e.startsAt).day}</b></span>
+            <span className="tile-copy"><strong>{e.title}</strong><small>{priceFrom(e)}</small></span>
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 

@@ -24,7 +24,7 @@ export function Profile({ nav }: { nav: Nav }) {
 
   return (
     <div className="screen">
-      <TopBar title="Profile" />
+      <TopBar title="Profile" onBack={nav.back} />
       <div className="profile-head">
         <div className="avatar">{user.name.slice(0, 1).toUpperCase()}</div>
         <h2>{user.name}</h2>
@@ -44,6 +44,7 @@ export function Profile({ nav }: { nav: Nav }) {
       <div className="list">
         <button className="row-card" onClick={() => nav.go({ name: 'activity', tab: 'orders' })}><Icon name="receipt" /><div className="row-body"><strong>Order history</strong></div>›</button>
         <button className="row-card" onClick={() => nav.go({ name: 'activity', tab: 'bookings' })}><Icon name="calendar" /><div className="row-body"><strong>My bookings</strong></div>›</button>
+        <button className="row-card" onClick={() => nav.go({ name: 'tickets' })}><Icon name="ticket" /><div className="row-body"><strong>My event tickets</strong></div>›</button>
         <button className="row-card" onClick={() => nav.go({ name: 'rewards' })}><Icon name="star" /><div className="row-body"><strong>Rewards & codes</strong></div>›</button>
         <a className="row-card" href={`tel:${BAR.phone.replace(/\s/g, '')}`}><Icon name="bell" /><div className="row-body"><strong>Call the bar</strong><span className="small muted">{BAR.phone}</span></div>›</a>
       </div>

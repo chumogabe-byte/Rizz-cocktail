@@ -16,13 +16,16 @@ import { Staff } from './screens/Staff';
 import { Social } from './screens/Social';
 import { Rewards } from './screens/Rewards';
 import { TV } from './screens/TV';
+import { Events } from './screens/Events';
+import { EventDetail } from './screens/EventDetail';
+import { MyTickets } from './screens/MyTickets';
 
 const TABS: { route: Route; icon: string; label: string }[] = [
   { route: { name: 'home' }, icon: 'home', label: 'Home' },
   { route: { name: 'menu' }, icon: 'menu', label: 'Menu' },
+  { route: { name: 'events' }, icon: 'ticket', label: 'Events' },
   { route: { name: 'book' }, icon: 'calendar', label: 'Book' },
   { route: { name: 'social' }, icon: 'camera', label: 'Moments' },
-  { route: { name: 'profile' }, icon: 'user', label: 'Profile' },
 ];
 
 const initialRoute = (): Route => (location.hash === '#staff' ? { name: 'staff' } : location.hash === '#tv' ? { name: 'tv' } : { name: 'home' });
@@ -66,7 +69,7 @@ export default function App() {
   }
   if (!user) return <div className="app"><Welcome /></div>;
 
-  const showNav = ['home', 'menu', 'book', 'social', 'profile'].includes(route.name);
+  const showNav = ['home', 'menu', 'events', 'book', 'social', 'profile'].includes(route.name);
 
   return (
     <div className="app">
@@ -84,6 +87,9 @@ export default function App() {
         {route.name === 'profile' && <Profile nav={nav} />}
         {route.name === 'social' && <Social nav={nav} />}
         {route.name === 'rewards' && <Rewards nav={nav} />}
+        {route.name === 'events' && <Events nav={nav} />}
+        {route.name === 'event' && <EventDetail key={route.id} nav={nav} id={route.id} />}
+        {route.name === 'tickets' && <MyTickets nav={nav} />}
       </main>
       {showNav && (
         <nav className="bottom-nav">

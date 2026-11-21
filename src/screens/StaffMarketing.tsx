@@ -88,7 +88,7 @@ export function PromosPanel() {
 
 // ======================= Ads / hero slides / TV =======================
 const PLACEMENT_LABELS: { id: Placement; label: string }[] = [
-  { id: 'home', label: 'Home' }, { id: 'menu', label: 'Menu' }, { id: 'book', label: 'Book' }, { id: 'social', label: 'Moments' }, { id: 'tv', label: 'Bar TVs' },
+  { id: 'home', label: 'Home' }, { id: 'menu', label: 'Menu' }, { id: 'book', label: 'Book' }, { id: 'social', label: 'Moments' }, { id: 'events', label: 'Events page' }, { id: 'tv', label: 'Bar TVs' },
 ];
 const blankAd = (): Partial<Ad> & { image?: string } => ({ title: '', subtitle: '', emoji: '🍸', theme: 'purple',
   cta: { label: 'Order now', type: 'menu', target: 'cocktails' }, placements: ['home', 'menu', 'tv'], active: true });
