@@ -12,3 +12,6 @@ export const BAR = {
 };
 
 export const money = (n: number) => `${BAR.currency}${n.toFixed(2)}`;
+
+/** "7" → "Table 7", "Bar 2" → "Bar 2" */
+export const seatLabel = (t?: string) => (!t ? '' : /^\d/.test(t) ? `Table ${t}` : t);

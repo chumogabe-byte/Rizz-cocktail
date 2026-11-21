@@ -4,7 +4,7 @@ import type { OrderStatus } from '../types';
 import { actions, useStore } from '../store/store';
 import { Icon } from '../components/Icon';
 import { Chip, TopBar } from '../components/Layout';
-import { money } from '../config';
+import { money, seatLabel } from '../config';
 
 const STEPS: { s: OrderStatus; label: string; emoji: string }[] = [
   { s: 'new', label: 'Received', emoji: '🧾' },
@@ -33,7 +33,7 @@ export function OrderTracking({ nav, id }: { nav: Nav; id: string }) {
         <div className="track-emoji">{cancelled ? '❌' : STEPS[idx]?.emoji}</div>
         <h2>{cancelled ? 'Order cancelled' : order.status === 'ready' ? (order.fulfilment === 'pickup' ? 'Ready at the bar!' : 'On its way to you!') : order.status === 'served' ? 'Enjoy! Cheers 🥂' : order.status === 'preparing' ? 'Our bartenders are on it' : 'Order sent to the bar'}</h2>
         <p className="muted small">
-          {order.fulfilment === 'table' ? <>Table {order.table}</> : <>Pickup at the bar · show code <strong>{order.code}</strong></>}
+          {order.fulfilment === 'table' ? <>{seatLabel(order.table)}</> : <>Pickup at the bar · show code <strong>{order.code}</strong></>}
         </p>
         {!cancelled && (
           <div className="steps">

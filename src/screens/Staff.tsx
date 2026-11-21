@@ -3,7 +3,7 @@ import type { Nav } from '../router';
 import type { Booking, Order, OrderStatus } from '../types';
 import { actions, useStore } from '../store/store';
 import { Icon } from '../components/Icon';
-import { BAR, money } from '../config';
+import { BAR, money, seatLabel } from '../config';
 import { bookingStatusText, fmtDate } from './BookingDetail';
 
 const COLUMNS: { s: OrderStatus; title: string; next?: OrderStatus; cta?: string }[] = [
@@ -137,7 +137,7 @@ function OrderTicket({ o, now, cta, onNext }: { o: Order; now: number; cta?: str
         <span className={`timer ${late ? 'late' : ''}`}><Icon name="clock" size={12} /> {mins}m</span>
       </div>
       <div className="small">
-        <b>{o.fulfilment === 'table' ? `Table ${o.table}` : 'Pickup'}</b> · {o.customer}
+        <b>{o.fulfilment === 'table' ? seatLabel(o.table) : 'Pickup'}</b> · {o.customer}
       </div>
       <ul className="ticket-lines">
         {o.lines.map((l) => (
