@@ -1,10 +1,10 @@
-import { useMemo, useRef, useState } from 'react';
-import type { Category, MenuItem } from '../types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Category, HappyHour, MenuItem } from '../types';
 import { actions, run, showToast, useStore } from '../store/store';
 import { CATEGORIES, OPTION_PRESETS, SECTIONS } from '../data/menu';
 import { resizeImage } from '../image';
 import { mediaUrl } from '../api';
-import { ItemArt, Price } from '../components/ItemBits';
+import { ItemArt } from '../components/ItemBits';
 import { Art } from '../components/Art';
 import { AD_THEMES } from '../components/Promo';
 import { money } from '../config';
@@ -35,6 +35,8 @@ export function MenuPanel() {
         <div className="kpi"><small>Sold out</small><strong>{soldOut}</strong></div>
         <div className="kpi"><small>Categories</small><strong>{new Set(menu.map((m) => m.category)).size}</strong></div>
       </div>
+
+      <HappyHoursCard />
 
       <div className="card stack">
         <h3>🔥 Quick category offer</h3>
@@ -72,7 +74,7 @@ export function MenuPanel() {
               <strong>{m.name} {m.popular && <span className="tag tag-lime">Hot</span>}</strong>
               <span className="tiny muted">{CATEGORIES.find((c) => c.id === m.category)?.label} · {m.options?.length ? `${m.options.length} option group(s)` : 'no options'}</span>
             </div>
-            <Price item={m} />
+            <InlinePrice item={m} />
             <label className="switch" title="Available">
               <input type="checkbox" checked={m.available !== false} onChange={(e) => run(actions.saveMenuItem({ available: e.target.checked }, m.id))} />
               <span>{m.available === false ? 'Sold out' : 'Available'}</span>
@@ -189,6 +191,93 @@ function ItemEditor({ id, initial, existingImage, onClose }: { id?: string; init
           <button className="btn btn-primary grow" onClick={save} disabled={busy}>{busy ? 'Saving…' : id ? 'Save changes' : `Add · ${money(d.offerPrice ?? d.price ?? 0)}`}</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Edit a price straight from the list: type, then Enter or tap away to save. */
+function InlinePrice({ item }: { item: MenuItem }) {
+  const [v, setV] = useState(String(item.price));
+  const [state, setState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  useEffect(() => { setV(String(item.price)); }, [item.price]);
+  const commit = async () => {
+    const n = Math.round(+v);
+    if (!Number.isFinite(n) || n < 0 || n === item.price) { setV(String(item.price)); return; }
+    setState('saving');
+    try { await actions.saveMenuItem({ price: n }, item.id); setState('saved'); setTimeout(() => setState('idle'), 1200); }
+    catch (e) { showToast((e as Error).message); setV(String(item.price)); setState('idle'); }
+  };
+  return (
+    <div className="inline-price">
+      <span className="tiny muted">KSh</span>
+      <input inputMode="numeric" value={v} onChange={(e) => setV(e.target.value.replace(/[^\d]/g, ''))}
+        onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setV(String(item.price)); (e.target as HTMLInputElement).blur(); } }} aria-label={`Price of ${item.name}`} />
+      {state === 'saving' && <span className="tiny muted">…</span>}
+      {state === 'saved' && <span className="tiny plus">✓</span>}
+      {item.offerPrice != null && <span className="tiny price">offer {money(item.offerPrice)}</span>}
+      {item.happyHour && <span className="tiny hh-tag">🍹 {money(item.hhPrice ?? 0)} now</span>}
+    </div>
+  );
+}
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Scheduled happy hours: automatic % off a category on chosen days & times (Nairobi time). */
+function HappyHoursCard() {
+  const hours = useStore((s) => s.happyHours) as HappyHour[];
+  const [draft, setDraft] = useState<Partial<HappyHour> | null>(null);
+  const save = async () => {
+    if (!draft) return;
+    try { await actions.saveHappyHour(draft, draft.id); setDraft(null); showToast('🍹 Happy hour saved — prices switch automatically'); }
+    catch (e) { showToast((e as Error).message); }
+  };
+  const catLabel = (c: string) => (c === 'all' ? 'Whole menu' : CATEGORIES.find((x) => x.id === c)?.label ?? c);
+  return (
+    <div className="card stack">
+      <div className="row-gap">
+        <h3 className="grow">🍹 Happy hours (automatic)</h3>
+        <button className="btn btn-primary sm" onClick={() => setDraft({ name: 'Happy Hour', category: 'cocktails', percent: 20, days: [1, 2, 3, 4, 5], start: '16:00', end: '19:00', active: true })}>+ Schedule</button>
+      </div>
+      <p className="tiny muted">Discounts switch on and off by themselves at the times below (Kenya time). Guests see a "Happy hour" badge and banner, and the server charges the happy-hour price.</p>
+      {hours.length === 0 && <p className="tiny muted">No happy hours scheduled.</p>}
+      {hours.map((h) => (
+        <div key={h.id} className={`hh-row ${h.active ? '' : 'off'}`}>
+          <div className="row-body">
+            <strong>{h.name} · {h.percent}% off {catLabel(h.category)}</strong>
+            <span className="tiny muted">{h.days.length === 7 ? 'Every day' : h.days.sort().map((d) => DAYS[d]).join(', ')} · {h.start}–{h.end}</span>
+          </div>
+          <label className="switch"><input type="checkbox" checked={h.active} onChange={(e) => run(actions.saveHappyHour({ active: e.target.checked }, h.id))} /><span>{h.active ? 'On' : 'Off'}</span></label>
+          <button className="btn btn-ghost sm" onClick={() => setDraft({ ...h })}>Edit</button>
+        </div>
+      ))}
+      {draft && (
+        <div className="hh-editor stack">
+          <div className="two-col">
+            <label className="field"><span>Name</span><input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></label>
+            <label className="field"><span>Applies to</span>
+              <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>
+                <option value="all">Whole menu</option>{CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </label>
+            <label className="field"><span>% off</span><input type="number" min={1} max={90} value={draft.percent} onChange={(e) => setDraft({ ...draft, percent: +e.target.value })} /></label>
+            <div className="two-col">
+              <label className="field"><span>From</span><input type="time" value={draft.start} onChange={(e) => setDraft({ ...draft, start: e.target.value })} /></label>
+              <label className="field"><span>Until</span><input type="time" value={draft.end} onChange={(e) => setDraft({ ...draft, end: e.target.value })} /></label>
+            </div>
+          </div>
+          <div className="chips-wrap">
+            {DAYS.map((d, i) => (
+              <button key={d} type="button" className={`chip ${draft.days?.includes(i) ? 'chip-active' : ''}`}
+                onClick={() => setDraft({ ...draft, days: draft.days?.includes(i) ? draft.days.filter((x) => x !== i) : [...(draft.days ?? []), i] })}>{d}</button>
+            ))}
+          </div>
+          <div className="row-gap">
+            {draft.id && <button className="btn btn-ghost sm danger" onClick={() => { if (confirm('Delete this happy hour?')) run(actions.deleteHappyHour(draft.id!).then(() => setDraft(null))); }}>Delete</button>}
+            <button className="btn btn-ghost sm grow" onClick={() => setDraft(null)}>Cancel</button>
+            <button className="btn btn-primary sm grow" onClick={save}>Save</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,6 +19,7 @@ export function Home({ nav }: { nav: Nav }) {
   const cart = useStore((s) => s.cart);
   const MENU = useStore((s) => s.menu);
   const spaces = useStore((s) => s.spaces);
+  const happyNow = useStore((s) => s.happyHours) as import('../types').HappyHourNow[];
   const bar = useBar();
   const home = useStore((s) => s.content?.home);
   const offers = MENU.filter((m) => m.available !== false && m.offerPrice != null && m.offerPrice < m.price);
@@ -76,6 +77,14 @@ export function Home({ nav }: { nav: Nav }) {
               <span className="pulse" />
               <div><strong>Order {activeOrder.code}</strong><span className="small">{statusLabel(activeOrder.status)}</span></div>
               <span className="small">Track →</span>
+            </button>
+          )}
+
+          {happyNow.length > 0 && (
+            <button className="hh-banner" onClick={() => nav.go({ name: 'menu', category: CATEGORIES.some((c) => c.id === happyNow[0].category) ? (happyNow[0].category as never) : undefined })}>
+              <span className="hh-emoji">🍹</span>
+              <span className="row-body"><strong>{happyNow[0].name} is ON</strong><small>{happyNow[0].percent}% off {happyNow[0].category === 'all' ? 'the whole menu' : CATEGORIES.find((c) => c.id === happyNow[0].category)?.label.toLowerCase()} until {happyNow[0].end}</small></span>
+              <span className="hh-go">Order →</span>
             </button>
           )}
 

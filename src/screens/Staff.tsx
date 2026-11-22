@@ -52,7 +52,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   { group: 'People & app', items: [['wallets', '👛', 'Wallets', ['admin', 'staff']], ['customers', '👥', 'Customers', ['admin']], ['settings', '🎨', 'App & Branding', ['admin']]] },
 ];
 
-export function Staff({ onExit }: { onExit: () => void }) {
+export function Staff({ onExit, onPreview }: { onExit: () => void; onPreview?: () => void }) {
   const bar = useBar();
   const role = useStore((s) => s.staffRole) ?? 'staff';
   const orders = useStore((s) => s.orders);
@@ -104,6 +104,7 @@ export function Staff({ onExit }: { onExit: () => void }) {
           <a className="admin-nav" href={`${getServerUrl() || location.origin}/#tv`} target="_blank" rel="noreferrer"><span>📺</span>Bar TV screen</a>
           <a className="admin-nav" href={`${getServerUrl() || location.origin}/`} target="_blank" rel="noreferrer"><span>📱</span>Open guest app</a>
         </div>
+        {onPreview && <button className="admin-nav" onClick={onPreview}><span>👀</span>Preview as guest</button>}
         <button className="admin-nav danger" onClick={onExit}><span>🚪</span>Log out</button>
       </aside>
       {menuOpen && <div className="admin-scrim" onClick={() => setMenuOpen(false)} />}

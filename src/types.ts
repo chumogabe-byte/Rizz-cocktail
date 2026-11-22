@@ -15,6 +15,8 @@ export interface MenuItem {
   abv?: string;
   popular?: boolean;
   offerPrice?: number; // special price shown as an offer
+  happyHour?: string;  // set while a scheduled happy hour discounts this item
+  hhPrice?: number;    // (staff view) the live happy-hour price
   available?: boolean; // false = sold out
   image?: string;
   options?: { label: string; choices: { name: string; price: number }[] }[];
@@ -228,3 +230,6 @@ export interface WalletTx {
 }
 export interface Topup { id: string; customerId: string; amount: number; createdAt: number; bonus?: number; payment?: Payment }
 export interface Wallet { balance: number; tx: WalletTx[]; topups: Topup[] }
+
+export interface HappyHour { id: string; name: string; category: string; percent: number; days: number[]; start: string; end: string; active: boolean }
+export interface HappyHourNow { name: string; category: string; percent: number; end: string }

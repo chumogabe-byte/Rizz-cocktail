@@ -10,7 +10,7 @@ import { Staff } from '../screens/Staff';
  * Rizz Admin — the management app (separate from the guest app).
  * Admin PIN → everything (prices, images, menu, settings…). Staff PIN → orders, bookings, check-in, moments.
  */
-export default function AdminApp() {
+export default function AdminApp({ adminOnly = false }: { adminOnly?: boolean }) {
   const token = useStore((s) => s.staffToken);
   const online = useStore((s) => s.online);
   const loaded = useStore((s) => s.loaded);
@@ -22,12 +22,14 @@ export default function AdminApp() {
     <>
       {!online && <div className="offline-bar">{loaded ? 'Reconnecting to the server…' : 'Connecting to the server…'}</div>}
       {toast && <div className="toast">{toast}</div>}
-      {token ? <Staff onExit={() => actions.lockStaff()} /> : <AdminLogin />}
+      {token
+        ? <Staff onExit={() => { actions.lockStaff(); if (!adminOnly) actions.setMode('guest'); }} onPreview={adminOnly ? undefined : () => actions.setMode('guest')} />
+        : <AdminLogin adminOnly={adminOnly} />}
     </>
   );
 }
 
-function AdminLogin() {
+function AdminLogin({ adminOnly }: { adminOnly: boolean }) {
   const bar = useBar();
   const online = useStore((s) => s.online);
   const native = Capacitor.isNativePlatform();
@@ -53,7 +55,7 @@ function AdminLogin() {
     <div className="admin-login">
       <div className="admin-login-card">
         <div className="brand-mark">{bar.name.toUpperCase()}<span>.</span></div>
-        <h1>Admin</h1>
+        <h1>Staff & admin login</h1>
         <p className="muted small">Manage orders, menu & prices, events, offers, images and settings.</p>
         <form className="stack" onSubmit={submit}>
           {(native) && (
@@ -67,6 +69,7 @@ function AdminLogin() {
           {err && <p className="error">{err}</p>}
           <button className="btn btn-primary btn-block" type="submit" disabled={busy || !pin}>{busy ? 'Checking…' : 'Log in'}</button>
           <p className="tiny muted center">Manager PIN = full access · Staff PIN = orders, bookings & check-in</p>
+          {!adminOnly && <button type="button" className="btn btn-ghost btn-block" onClick={() => actions.setMode('guest')}>← Back to the guest app</button>}
         </form>
       </div>
     </div>

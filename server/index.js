@@ -82,7 +82,7 @@ const DEFAULT_CONTENT = {
 
 const SEED_MENU = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed-menu.json'), 'utf8'));
 
-let db = { wallets: {}, walletTx: [], topups: [], content: DEFAULT_CONTENT, spaces: SEED_SPACES, payments: [], events: DEFAULT_EVENTS, tickets: [], menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
+let db = { happyHours: [{ id: 'hh-cocktails', name: 'Happy Hour', category: 'cocktails', percent: 20, days: [1, 2, 3, 4, 5], start: '16:00', end: '19:00', active: false }], wallets: {}, walletTx: [], topups: [], content: DEFAULT_CONTENT, spaces: SEED_SPACES, payments: [], events: DEFAULT_EVENTS, tickets: [], menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
 try {
   db = { ...db, ...JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) };
   db.settings = { ...DEFAULT_SETTINGS, ...db.settings };
@@ -127,9 +127,38 @@ function removeImage(url) {
   if (url?.startsWith('/uploads/')) fs.rm(path.join(UPLOAD_DIR, path.basename(url)), () => {});
 }
 
+// ---------- happy hours (scheduled automatic offers, Nairobi time) ----------
+function nairobiNow() {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Nairobi', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  const g = (t) => parts.find((p) => p.type === t).value;
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(g('weekday'));
+  return { day, minutes: Number(g('hour')) * 60 + Number(g('minute')) };
+}
+const toMin = (hhmm) => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+/** Happy hours running right now. Windows may cross midnight (e.g. 22:00–02:00 counts for the start day). */
+function activeHappyHours() {
+  const { day, minutes } = nairobiNow();
+  return (db.happyHours || []).filter((h) => {
+    if (!h.active) return false;
+    const a = toMin(h.start), b = toMin(h.end);
+    if (a <= b) return h.days.includes(day) && minutes >= a && minutes < b;
+    const prevDay = (day + 6) % 7;
+    return (h.days.includes(day) && minutes >= a) || (h.days.includes(prevDay) && minutes < b);
+  });
+}
+/** Item with the best current price applied (offer price or running happy hour). */
+function effectiveItem(item, hhs = activeHappyHours()) {
+  const hh = hhs.filter((h) => h.category === 'all' || h.category === item.category).sort((x, y) => y.percent - x.percent)[0];
+  if (!hh) return item;
+  const hhPrice = Math.round(item.price * (1 - hh.percent / 100));
+  if (item.offerPrice != null && item.offerPrice <= hhPrice) return item;
+  return { ...item, offerPrice: hhPrice, happyHour: `${hh.name} −${hh.percent}%` };
+}
+
 // ---------- menu pricing (mirrors src/data/menu.ts unitPrice) ----------
 /** Unit price for an item given the chosen option names, in option order. Returns null if a choice is invalid. */
-function priceFor(item, choiceNames = []) {
+function priceFor(rawItem, choiceNames = []) {
+  const item = effectiveItem(rawItem);
   const basePrice = item.offerPrice ?? item.price;
   let base = basePrice, extra = 0;
   const groups = item.options || [];
@@ -266,7 +295,8 @@ function viewFor(c) {
     content: db.content,
     spaces: c.staff ? db.spaces : db.spaces.filter((x) => x.active !== false),
     mpesa: mpesaInfo(),
-    menu: db.menu,
+    menu: menuView(c),
+    happyHours: c.staff ? db.happyHours : activeHappyHours().map(({ name, category, percent, end }) => ({ name, category, percent, end })),
     events: (c.staff ? db.events : db.events.filter((e) => e.published)).map(withSales),
     tickets: c.staff ? db.tickets : db.tickets.filter((t) => t.customerId && t.customerId === c.customerId),
   };
@@ -973,7 +1003,55 @@ function cleanItem(b, prev = {}) {
     options: opts?.length ? opts : undefined,
   };
 }
-function pushMenu() { for (const c of clients) send(c, 'menu', db.menu); }
+/** Guests get happy-hour prices applied; staff get the raw menu (for editing) plus the live price marker. */
+function menuView(c) {
+  const hhs = activeHappyHours();
+  if (!c.staff) return db.menu.map((m) => effectiveItem(m, hhs));
+  return db.menu.map((m) => { const e = effectiveItem(m, hhs); return e.happyHour ? { ...m, happyHour: e.happyHour, hhPrice: e.offerPrice } : m; });
+}
+function pushMenu() {
+  for (const c of clients) {
+    send(c, 'menu', menuView(c));
+    send(c, 'happyHours', c.staff ? db.happyHours : activeHappyHours().map(({ name, category, percent, end }) => ({ name, category, percent, end })));
+  }
+}
+// Re-push prices the minute a happy hour starts or ends
+let hhSignature = '';
+setInterval(() => {
+  const sig = activeHappyHours().map((h) => h.id).sort().join(',');
+  if (sig !== hhSignature) { hhSignature = sig; pushMenu(); }
+}, 20_000);
+
+function cleanHappyHour(b, prev = {}) {
+  return {
+    name: str(b.name, 40) ?? prev.name ?? 'Happy Hour',
+    category: b.category === 'all' || CATEGORY_IDS.includes(b.category) ? b.category : prev.category ?? 'all',
+    percent: b.percent !== undefined ? num(b.percent, 1, 90, 20) : prev.percent ?? 20,
+    days: Array.isArray(b.days) ? [...new Set(b.days.map(Number).filter((d) => d >= 0 && d <= 6))] : prev.days ?? [0, 1, 2, 3, 4, 5, 6],
+    start: /^\d{2}:\d{2}$/.test(b.start || '') ? b.start : prev.start ?? '16:00',
+    end: /^\d{2}:\d{2}$/.test(b.end || '') ? b.end : prev.end ?? '19:00',
+    active: typeof b.active === 'boolean' ? b.active : prev.active ?? true,
+  };
+}
+app.post('/api/happy-hours', requireAdmin, (req, res) => {
+  const h = { id: uid(), ...cleanHappyHour(req.body || {}) };
+  if (!h.days.length) return res.status(400).json({ error: 'Pick at least one day' });
+  db.happyHours.push(h);
+  save(); pushMenu();
+  res.status(201).json(h);
+});
+app.patch('/api/happy-hours/:id', requireAdmin, (req, res) => {
+  const i = db.happyHours.findIndex((h) => h.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: 'Not found' });
+  db.happyHours[i] = { ...db.happyHours[i], ...cleanHappyHour(req.body || {}, db.happyHours[i]) };
+  save(); pushMenu();
+  res.json(db.happyHours[i]);
+});
+app.delete('/api/happy-hours/:id', requireAdmin, (req, res) => {
+  db.happyHours = db.happyHours.filter((h) => h.id !== req.params.id);
+  save(); pushMenu();
+  res.json({ ok: true });
+});
 
 app.post('/api/menu', requireAdmin, (req, res) => {
   const item = { id: `item-${crypto.randomBytes(4).toString('hex')}`, ...cleanItem(req.body || {}) };

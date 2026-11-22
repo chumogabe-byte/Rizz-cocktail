@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { initFx } from './fx';
 import type { Nav, Route } from './router';
-import { connect, useStore } from './store/store';
+import { actions, connect, useStore } from './store/store';
 import { Icon } from './components/Icon';
 import { Welcome } from './screens/Welcome';
 import { Home } from './screens/Home';
@@ -20,6 +20,7 @@ import { Events } from './screens/Events';
 import { EventDetail } from './screens/EventDetail';
 import { MyTickets } from './screens/MyTickets';
 import { Wallet } from './screens/Wallet';
+import { LiveAlerts } from './components/LiveAlerts';
 
 const TABS: { route: Route; icon: string; label: string }[] = [
   { route: { name: 'home' }, icon: 'home', label: 'Home' },
@@ -36,6 +37,7 @@ export default function App() {
   const online = useStore((s) => s.online);
   const loaded = useStore((s) => s.loaded);
   const toast = useStore((s) => s.toast);
+  const staffToken = useStore((s) => s.staffToken);
 
   useEffect(() => { connect(); initFx(); }, []);
   // Direction of the last navigation, for page transitions
@@ -67,7 +69,8 @@ export default function App() {
   useEffect(() => { window.scrollTo(0, 0); }, [route]);
 
   if (route.name === 'tv') return <TV />;
-  if (!user) return <div className="app"><Welcome /></div>;
+  const previewPill = staffToken && <button className="preview-pill" onClick={() => actions.setMode('admin')}>👀 Guest preview · <b>Back to admin</b></button>;
+  if (!user) return <div className="app">{previewPill}<Welcome /></div>;
 
   const showNav = ['home', 'menu', 'events', 'book', 'social', 'profile'].includes(route.name);
   const tabIdx = TABS.findIndex((t) => t.route.name === route.name);
@@ -77,6 +80,8 @@ export default function App() {
     <div className="app">
       {!online && <OfflineBar loaded={loaded} />}
       {toast && <div className="toast">{toast}</div>}
+      <LiveAlerts />
+      {previewPill}
       <main className={showNav ? 'has-nav' : ''}>
         <div key={pageKey} className={`page page-${dir.current}`}>
         {route.name === 'home' && <Home nav={nav} />}

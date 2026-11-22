@@ -19,7 +19,7 @@ The server is one Docker service. It runs the API, live updates, M-Pesa and the 
 
 **Check it:**
 - `https://<your-address>/`: the guest app
-- `https://<your-address>/admin`: **Rizz Admin** (log in with your admin or staff PIN)
+- `https://<your-address>/admin`: the staff & admin side (log in with your admin or staff PIN). In the app, use **Staff & admin login** on the welcome screen.
 - `https://<your-address>/#tv`: the bar TV screen
 - `https://<your-address>/api/health` should show `{"ok":true}`
 
@@ -31,7 +31,7 @@ So guests are never asked for a server address:
 
 1. In GitHub open the repo → **Settings → Secrets and variables → Actions → Variables → New repository variable**.
 2. Name: `RIZZ_API_URL`. Value: your Render address, e.g. `https://rizz-cocktail-bar.onrender.com` (no trailing slash).
-3. Go to **Actions → Build Android apps → Run workflow**. The APKs in the run's **Artifacts** (`rizz-admin-apk`, `rizz-guest-apk`) have the address built in.
+3. Go to **Actions → Build Android apps → Run workflow**. The APK in the run's **Artifacts** (`rizz-app-apk`) has the address built in.
 
 (The web app needs nothing. It is served by the same server, so guests can also just open the URL in a browser.)
 

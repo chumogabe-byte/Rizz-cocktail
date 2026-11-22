@@ -16,7 +16,7 @@ export function ItemArt({ item, size }: { item: MenuItem; size: 'sm' | 'md' | 'l
     <div className="item-art">
       <Art emoji={item.emoji} gradient={item.gradient} size={size} img={item.image ? mediaUrl(item.image) : undefined} />
       {item.available === false && <span className="soldout">Sold out</span>}
-      {item.available !== false && item.offerPrice != null && item.offerPrice < item.price && <span className="offer-badge">Offer</span>}
+      {item.available !== false && item.offerPrice != null && item.offerPrice < item.price && <span className={`offer-badge ${item.happyHour ? 'hh' : ''}`}>{item.happyHour ? '🍹 Happy hour' : 'Offer'}</span>}
     </div>
   );
 }

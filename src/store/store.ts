@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { Wallet, Topup, AppContent, Space, StaffRole, BarEvent, TicketOrder, TicketStatus, MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
+import type { HappyHour, HappyHourNow, Wallet, Topup, AppContent, Space, StaffRole, BarEvent, TicketOrder, TicketStatus, MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
 import { api, subscribe, type Snapshot } from '../api';
 import seedMenu from '../../server/seed-menu.json';
 import seedSpaces from '../../server/seed-spaces.json';
@@ -29,9 +29,12 @@ export interface State {
   mpesa: Snapshot['mpesa'] | null;
   content: AppContent | null;
   wallet: Wallet | null;
+  happyHours: (HappyHour | HappyHourNow)[];
   walletRev: number; // bumps when any wallet changes (staff screens refetch)
   spaces: Space[];
   staffRole: StaffRole | null;
+  /** Which side of the app is showing: guest (consumer) or admin/staff. */
+  appMode: 'guest' | 'admin';
   online: boolean;
   loaded: boolean;
   staffToken: string | null;
@@ -58,11 +61,16 @@ function load(): State {
     orders: [], bookings: [], posts: [], ads: [], vouchers: [], me: null,
     settings: { rewardThreshold: 100, rewardValue: 1000, pointsPerUnit: 0.01 },
     menu: seedMenu as MenuItem[],
-    events: [], tickets: [], mpesa: null, wallet: null, walletRev: 0, content: null, spaces: seedSpaces as Space[], staffRole: role,
+    events: [], tickets: [], mpesa: null, wallet: null, happyHours: [], walletRev: 0, appMode: initialMode(), content: null, spaces: seedSpaces as Space[], staffRole: role,
     online: false, loaded: false,
     staffToken: token,
     toast: null,
   };
+}
+
+function initialMode(): 'guest' | 'admin' {
+  if (typeof location !== 'undefined' && (/\/admin\/?$/.test(location.pathname) || location.hash.startsWith('#staff') || location.hash.startsWith('#admin'))) return 'admin';
+  try { return localStorage.getItem('rizz-app-mode') === 'admin' ? 'admin' : 'guest'; } catch { return 'guest'; }
 }
 
 let state: State = load();
@@ -99,6 +107,7 @@ export function connect() {
     menu: (menu) => set({ menu }),
     content: (content) => set({ content }),
     wallet: (wallet) => set({ wallet }),
+    happyHours: (happyHours) => set({ happyHours }),
     walletChanged: () => set({ walletRev: state.walletRev + 1 }),
     spaces: (spaces) => set({ spaces }),
     events: (events) => set({ events }),
@@ -134,6 +143,12 @@ export const run = (p: Promise<unknown>) => {
 const staff = () => ({ token: state.staffToken });
 
 export const actions = {
+  /** Switch between the guest app and the admin/staff side (same app, two logins). */
+  setMode(appMode: 'guest' | 'admin') {
+    try { localStorage.setItem('rizz-app-mode', appMode); } catch { /* ignore */ }
+    set({ appMode });
+    window.scrollTo(0, 0);
+  },
   login(user: User) {
     set({ user });
     run(api('/api/customers/me', { method: 'POST', body: { customerId: state.customerId, ...user } }));
@@ -228,6 +243,12 @@ export const actions = {
     return api<{ updated: number }>('/api/menu/offer', { method: 'POST', ...staff(), body: { category, percent } });
   },
   async deleteMenuItem(id: string) { await api(`/api/menu/${id}`, { method: 'DELETE', ...staff() }); },
+  // ---- happy hours (admin) ----
+  async saveHappyHour(h: Partial<HappyHour>, id?: string) {
+    await api(id ? `/api/happy-hours/${id}` : '/api/happy-hours', { method: id ? 'PATCH' : 'POST', ...staff(), body: h });
+  },
+  async deleteHappyHour(id: string) { await api(`/api/happy-hours/${id}`, { method: 'DELETE', ...staff() }); },
+
   // ---- Rizz Wallet ----
   /** Creates a top-up request, then sends the M-Pesa prompt for it. */
   async topUp(amount: number, phone: string) {

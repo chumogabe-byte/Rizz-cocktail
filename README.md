@@ -28,21 +28,19 @@ The design takes cues from modern nightlife apps: a dark UI with electric purple
 - **Navigation**: pages slide in and out like a native app, and a glowing pill springs between bottom-bar tabs. Cocktail bubbles rise and a floating mosaic moves on the welcome screen.
 - **Accessibility**: everything switches off automatically when the phone's *Reduce motion* setting is on.
 
-### Two apps: guest vs admin
-| | **Rizz** (guest app) | **Rizz Admin** (management app) |
-|---|---|---|
-| Web | `https://<server>/` | `https://<server>/admin` |
-| Android | `rizz-cocktail-bar.apk` (`com.rizz.cocktailbar`) | `rizz-admin.apk` (`com.rizz.cocktailbar.admin`), with its own dark icon and crown |
-| Who | Guests | Owner, managers, staff |
-
-The guest app contains **no staff or admin code**. The admin app has a sidebar on tablets and computers, and a slide-out menu on phones.
+### One app, two logins
+The **Rizz** app is used by everyone:
+- **Guests** tap *Get Started* and use the app as normal.
+- **Staff and admins** tap **🔐 Staff & admin login** on the welcome screen (or *Profile → Staff & admin*) and enter their PIN. On the web this is also at `https://<server>/admin`.
+- While logged in as admin, **👀 Preview as guest** shows the guest app exactly as customers see it, so you can check your edits. A pill at the top takes you back to admin.
+- An optional **admin-only APK** can still be built (Actions → Build Android apps → Run workflow → `admin-only`).
 
 **Two access levels** (set on the server):
 - **`ADMIN_PIN`** (owner / manager) gets full control: menu & prices, item photos, offers & hero slides, promo codes & rewards, events, spaces, customers, and **App & Branding**.
 - **`STAFF_PIN`** (bartenders / door staff) covers operations only: orders, bookings, event sales & door check-in, and moderating Moments. The server rejects any staff attempt to change prices or content.
 
 **What the admin can change without touching code** (every change is live on all guest phones instantly):
-- **Menu & Prices**: add, edit or delete items, prices, offer prices, photos, options, sold out, category-wide offers.
+- **Menu & Prices**: add, edit or delete items; **quick-edit prices right in the list** (type and press Enter); offer prices, photos, options, sold out; category-wide offers; **scheduled happy hours**.
 - **Spaces**: bookable areas with photo, description, min/max guests, minimum spend, perks, "several groups per slot", and show/hide.
 - **App & Branding**: bar name, tagline, address, opening hours, phone, service charge %, the home-screen headline, photos for the "Order" and "Book" buttons, and the welcome screen title, subtitle and up to 6 background photos.
 - **Offers & Hero slides**, **Events & Tickets**, **Promo codes & Rewards**, **Moments**, **Customers**, **Dashboard**.
@@ -102,6 +100,17 @@ Guests can **load money** into a Rizz Wallet and pay for **orders and event tick
 
 > A wallet belongs to the guest's Rizz account on their phone. If someone changes phones, an admin can move the balance with an adjustment.
 
+## Happy hours (automatic)
+In Rizz Admin → Menu & Prices → **Happy hours**, schedule a discount: name, menu section (or the whole menu), % off, days and a time window (Kenya time; windows can run past midnight). While it runs:
+- guests see a **🍹 Happy hour is ON** banner on Home, plus a "Happy hour" badge and the reduced price on each item
+- the **server charges the happy-hour price**, and prices switch back automatically when it ends
+- an item's own offer price is used instead if it's even lower
+
+Switch any happy hour on or off with one tap.
+
+## Live alerts
+Guests get a pop-up and a vibration whichever screen they're on when their order is being prepared, is **ready**, or is cancelled (with the refund noted), and when a booking is **confirmed** or declined.
+
 ## Serving options
 At checkout guests choose **🪑 To my seat** (table or seat number), **🙋 Find me** (no seat needed, with an optional hint like "near the DJ booth, red jacket"; staff see the guest's name and hint on the ticket), or **🛎️ Pickup** at the bar.
 
@@ -158,7 +167,7 @@ This works on any Docker host, such as Railway, Fly.io, Render or a VPS. Mount a
 
 The `android/` folder is a native Android project (Capacitor) that wraps the same app.
 
-**Get the APKs:** every push triggers the **Build Android apps** GitHub Action. Open the repo's **Actions** tab, select the latest run, and download **rizz-admin-apk** (management app) and/or **rizz-guest-apk** (guest app). To build only one, use **Run workflow** and pick `admin` or `guest`. Pushing a tag like `v1.0.0` also attaches the APK to a GitHub Release.
+**Get the APK:** every push triggers the **Build Android apps** GitHub Action. Open the repo's **Actions** tab, select the latest run, and download **rizz-app-apk**: one app for guests *and* staff/admin. For an admin-only app as well, use **Run workflow** and pick `admin-only` or `both`. Pushing a tag like `v1.0.0` also attaches the APK to a GitHub Release.
 
 **Install:** copy `rizz-cocktail-bar.apk` to an Android phone, open it, and allow "install unknown apps". On first launch it asks for the **bar server address**, for example `https://rizz.example.com` or `192.168.1.20:3001` on the bar's Wi-Fi. This can be changed later under Profile → Server.
 

@@ -777,3 +777,22 @@ body.scrolled .topbar-title { letter-spacing: -.01em; }
 .wallet-pay.low { border-color: rgba(251,191,36,.4); background: rgba(251,191,36,.07); }
 .seg button { padding: 0 6px; }
 .table.wallets .tr { grid-template-columns: 1.6fr 1fr 1fr 1.6fr; }
+
+/* ---------- one app, two logins ---------- */
+.preview-pill { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 120; padding: 8px 14px; border-radius: 999px; font-size: 12.5px;
+  background: rgba(212,255,90,.95); color: var(--lime-ink); box-shadow: 0 10px 30px -10px rgba(212,255,90,.7); white-space: nowrap; }
+
+/* ---------- happy hours & quick price edit ---------- */
+.offer-badge.hh { background: linear-gradient(90deg, #f472b6, #fbbf24); color: #1a0b14; }
+.hh-banner { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--r); text-align: left; color: #1a0b14;
+  background: linear-gradient(110deg, #f472b6, #fbbf24 60%, #d4ff5a); box-shadow: 0 16px 34px -18px rgba(244,114,182,.9); animation: hhPulse 2.4s ease-in-out infinite; }
+.hh-banner small { display: block; font-size: 12.5px; opacity: .85; }
+.hh-emoji { font-size: 30px; animation: floaty 2.5s ease-in-out infinite alternate; }
+.hh-go { font-weight: 800; font-size: 13px; padding: 8px 12px; border-radius: 10px; background: rgba(26,11,20,.88); color: #fde68a; }
+@keyframes hhPulse { 50% { box-shadow: 0 16px 44px -12px rgba(251,191,36,.95); } }
+.hh-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--line); }
+.hh-row.off { opacity: .55; }
+.hh-editor { padding: 14px; border-radius: 14px; border: 1px dashed rgba(212,255,90,.4); }
+.hh-tag { color: #fbbf24; font-weight: 700; }
+.inline-price { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; min-width: 150px; }
+.inline-price input { width: 92px; padding: 8px 10px; border-radius: 10px; text-align: right; font-weight: 700; }

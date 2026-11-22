@@ -34,6 +34,7 @@ export function Welcome() {
             <h1 className="welcome-title">{lastSpace > 0 ? title.slice(0, lastSpace) + ' ' : ''}<span className="accent">{title.slice(lastSpace + 1)}</span></h1>
             <p className="muted">{welcome?.subtitle || 'Order cocktails and bites straight to your table, or reserve the best seats in the house.'}</p>
             <button className="btn btn-primary btn-block" onClick={() => setStep('form')}>Get Started</button>
+            <button className="btn btn-ghost btn-block" onClick={() => actions.setMode('admin')}>🔐 Staff & admin login</button>
             <p className="tiny muted center">{bar.tagline} · {bar.hours}</p>
           </>
         ) : (

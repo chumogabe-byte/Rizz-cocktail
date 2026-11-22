@@ -9,6 +9,7 @@ import { money, useBar } from '../config';
 export function Profile({ nav }: { nav: Nav }) {
   const bar = useBar();
   const wallet = useStore((s) => s.wallet);
+  const staffToken = useStore((s) => s.staffToken);
   const user = useStore((s) => s.user)!;
   const customerId = useStore((s) => s.customerId);
   const online = useStore((s) => s.online);
@@ -46,6 +47,7 @@ export function Profile({ nav }: { nav: Nav }) {
         <button className="row-card" onClick={() => nav.go({ name: 'activity', tab: 'bookings' })}><Icon name="calendar" /><div className="row-body"><strong>My bookings</strong></div>›</button>
         <button className="row-card" onClick={() => nav.go({ name: 'wallet' })}><span style={{ fontSize: 20 }}>👛</span><div className="row-body"><strong>Rizz Wallet</strong><span className="small muted">Balance {money(wallet?.balance ?? 0)}</span></div>›</button>
         <button className="row-card" onClick={() => nav.go({ name: 'tickets' })}><Icon name="ticket" /><div className="row-body"><strong>My event tickets</strong></div>›</button>
+        <button className="row-card" onClick={() => actions.setMode('admin')}><Icon name="shield" /><div className="row-body"><strong>Staff & admin</strong><span className="small muted">{staffToken ? 'Back to the admin side' : 'Log in to manage the bar'}</span></div>›</button>
         <button className="row-card" onClick={() => nav.go({ name: 'rewards' })}><Icon name="star" /><div className="row-body"><strong>Rewards & codes</strong></div>›</button>
         <a className="row-card" href={`tel:${bar.phone.replace(/\s/g, '')}`}><Icon name="bell" /><div className="row-body"><strong>Call the bar</strong><span className="small muted">{bar.phone}</span></div>›</a>
       </div>

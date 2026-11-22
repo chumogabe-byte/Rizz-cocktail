@@ -1,20 +1,26 @@
 import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { useStore } from './store/store';
 import './styles.css';
 
 /**
- * Which app to run:
- *  - VITE_APP=consumer → guest app only (Rizz APK; admin code is not included)
- *  - VITE_APP=admin    → admin app only (Rizz Admin APK)
- *  - unset (web)       → guest app at "/", admin app at "/admin"
+ * One app, two logins:
+ *  - Guests use the consumer app.
+ *  - "Staff & admin login" (welcome screen / Profile, or /admin on the web) opens the management side.
+ * VITE_APP=admin builds an admin-only app (optional "Rizz Admin" APK).
  */
-const MODE = import.meta.env.VITE_APP as 'consumer' | 'admin' | undefined;
-const AdminApp = MODE === 'consumer' ? null : lazy(() => import('./admin/AdminApp'));
-const isAdmin = MODE === 'admin' || (MODE !== 'consumer' && (location.pathname.replace(/\/+$/, '').endsWith('/admin') || location.hash.startsWith('#staff') || location.hash.startsWith('#admin')));
+const ADMIN_ONLY = import.meta.env.VITE_APP === 'admin';
+const AdminApp = lazy(() => import('./admin/AdminApp'));
+
+function Root() {
+  const mode = useStore((s) => s.appMode);
+  if (ADMIN_ONLY || mode === 'admin') return <Suspense fallback={null}><AdminApp adminOnly={ADMIN_ONLY} /></Suspense>;
+  return <App />;
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {isAdmin && AdminApp ? <Suspense fallback={null}><AdminApp /></Suspense> : <App />}
+    <Root />
   </React.StrictMode>,
 );
