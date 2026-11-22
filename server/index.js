@@ -678,6 +678,8 @@ app.patch('/api/events/:id', requireAdmin, (req, res) => {
   const next = { ...prev, ...cleanEvent(req.body || {}, prev) };
   if (req.body.image) { removeImage(prev.image); next.image = saveImage(req.body.image) || undefined; }
   if (req.body.removeImage) { removeImage(prev.image); delete next.image; }
+  // Moving the start without a new end keeps the event's length (end can never be before start)
+  if (next.endsAt && next.endsAt <= next.startsAt) next.endsAt = next.startsAt + Math.max(3600e3, (prev.endsAt || prev.startsAt + 3 * 3600e3) - prev.startsAt);
   db.events[i] = next;
   save(); pushEvents();
   res.json(next);

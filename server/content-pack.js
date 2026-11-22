@@ -13,6 +13,9 @@ const nextDow = (dow, hh, mm = 0) => {
   return t < Date.now() ? t + 7 * 864e5 : t;
 };
 
+// Rizz XP × Homeboys: Saturday 12 December 2026, 9 PM Kenya time (18:00 UTC)
+const RIZZ_XP_START = Date.UTC(2026, 11, 12, 18, 0);
+
 const classicCocktails = ['Mojito', 'Margarita', 'Negroni', 'Old Fashioned', 'Espresso Martini', 'Cosmopolitan', 'Daiquiri', 'Whiskey Sour'];
 const cocktailChoice = (n) => ({ label: `Cocktail ${n}`, choices: classicCocktails.map((name) => ({ name, price: 0 })) });
 const selectBottles = {
@@ -69,7 +72,7 @@ export const CONTENT_PACK = {
       ticketTypes: [{ id: 'tt-karaoke-free', name: 'Free entry (RSVP)', price: 0, capacity: 200 }, { id: 'tt-karaoke-table', name: 'Reserved table for 4 + priority songs', price: 2000, capacity: 12 }],
       featured: true, published: true },
     { id: 'ev-rizz-xp', title: 'Rizz XP × Homeboys', subtitle: 'The Rizz experience — live with the Homeboys', emoji: '🔥', theme: 'orange',
-      startsAt: nextDow(5, 21), endsAt: nextDow(5, 21) + 6 * 3600e3, location: 'Rooftop Terrace',
+      startsAt: RIZZ_XP_START, endsAt: RIZZ_XP_START + 6 * 3600e3, location: 'Rooftop Terrace',
       description: 'Rizz XP teams up with the Homeboys for a night of live performances, DJ sets and big energy. Tickets KSh 1,000 — limited capacity, get yours early.',
       ticketTypes: [{ id: 'tt-xp-regular', name: 'Regular', price: 1000, capacity: 300 }],
       featured: true, published: true },
@@ -86,7 +89,7 @@ export const CONTENT_PACK = {
       cta: { label: 'See bundles', type: 'menu', target: 'shisha' }, placements: ['home', 'menu', 'events', 'tv'], active: true },
     { id: 'ad-karaoke', title: 'Karaoke Sundays', subtitle: 'Free entry · every Sunday from 7 PM', emoji: '🎤', theme: 'blue',
       cta: { label: 'RSVP', type: 'event', target: 'ev-karaoke' }, placements: ['home', 'events', 'tv'], active: true },
-    { id: 'ad-rizz-xp', title: 'Rizz XP × Homeboys', subtitle: 'Tickets KSh 1,000 — limited capacity', emoji: '🔥', theme: 'orange',
+    { id: 'ad-rizz-xp', title: 'Rizz XP × Homeboys', subtitle: 'Sat 12 Dec · tickets KSh 1,000', emoji: '🔥', theme: 'orange',
       cta: { label: 'Get tickets', type: 'event', target: 'ev-rizz-xp' }, placements: ['home', 'events', 'social', 'tv'], active: true },
     { id: 'ad-chinese', title: 'Chinese Platter + Bottle', subtitle: 'Bundle from KSh 6,900 — save KSh 1,600', emoji: '🥢', theme: 'red',
       cta: { label: 'Order bundle', type: 'item', target: 'chinese-bottle-bundle' }, placements: ['home', 'menu', 'events', 'tv'], active: true },
@@ -114,6 +117,14 @@ export function applyContentPack(db) {
   CONTENT_PACK.happyHours.forEach((h) => put('happyHours', h));
   CONTENT_PACK.events.forEach((e) => put('events', e, true));
   CONTENT_PACK.ads.forEach((a) => put('ads', a, true));
+  // One-time date update for Rizz XP × Homeboys (Sat 12 Dec 2026, 9 PM) on servers that already had it
+  if (!db.seeded.includes('patch:rizz-xp-2026-12-12')) {
+    db.seeded.push('patch:rizz-xp-2026-12-12');
+    const ev = db.events?.find((e) => e.id === 'ev-rizz-xp');
+    if (ev) { ev.startsAt = RIZZ_XP_START; ev.endsAt = RIZZ_XP_START + 6 * 3600e3; added++; }
+    const ad = db.ads?.find((a) => a.id === 'ad-rizz-xp');
+    if (ad) { ad.subtitle = 'Sat 12 Dec · tickets KSh 1,000'; added++; }
+  }
   // The old "2-for-1, 4–7 PM" sample ad conflicts with the new 2–5 PM happy hour — switch it off once.
   if (!db.seeded.includes('retire:ad-happy')) {
     db.seeded.push('retire:ad-happy');

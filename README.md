@@ -108,7 +108,7 @@ These ship as a **content pack** (`server/content-pack.js`). It's added to new a
 | **Happy Hour: 3 cocktails for KSh 1,000** (2–5 PM daily) | Ad + *Happy Hour Trio* (pick any 3 classics). It can only be ordered 2–5 PM Kenya time; the server enforces this |
 | **Shisha Happy Hour** (2–5 PM daily) | New *Shisha* menu (shisha, shisha + 2 cocktails, + bucket of beers, + prosecco) with a scheduled 20% happy hour, plus an ad |
 | **Karaoke Sundays** | Event that repeats every Sunday 7 PM (free RSVP + reserved table with priority songs), plus an ad |
-| **Rizz XP × Homeboys** | Featured event with KSh 1,000 tickets, plus an ad (set the real date in Admin → Events) |
+| **Rizz XP × Homeboys** | Featured event on **Saturday 12 December 2026, 9 PM** (Rooftop) with KSh 1,000 tickets, plus an ad |
 | **Chinese Platter + select bottle** | Bundle at KSh 6,900 (normally 8,500) with a bottle choice and upgrades, plus an ad |
 | **Tattoo Saturdays** | Weekly Saturday event + ad + *Small Tattoo* for KSh 500, orderable only on Saturdays **with a bottle in the same order** |
 
