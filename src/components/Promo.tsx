@@ -31,6 +31,7 @@ export function useAdAction(nav: Nav) {
     else if (type === 'item') nav.go({ name: 'item', id: target });
     else if (type === 'book') nav.go({ name: 'book', spaceId: target || undefined });
     else if (type === 'social') nav.go({ name: 'social' });
+    else if (type === 'event' && target) nav.go({ name: 'event', id: target });
     else if (type === 'code' && target) {
       actions.applyCode(target);
       showToast(`🎟️ Code ${target} saved — it'll be applied at checkout.`);

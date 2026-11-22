@@ -1,7 +1,7 @@
 export type Category =
   | 'cocktails' | 'vodka' | 'gin' | 'whiskey' | 'rum' | 'tequila' | 'wine' | 'beer' | 'champagne' | 'liqueurs' | 'shots'
-  | 'soft' | 'mocktails' | 'small-plates' | 'mains' | 'desserts';
-export type Section = 'alcoholic' | 'soft' | 'food';
+  | 'soft' | 'mocktails' | 'small-plates' | 'mains' | 'desserts' | 'bundles' | 'shisha';
+export type Section = 'alcoholic' | 'soft' | 'food' | 'bundles';
 
 export interface MenuItem {
   id: string;
@@ -16,6 +16,9 @@ export interface MenuItem {
   popular?: boolean;
   offerPrice?: number; // special price shown as an offer
   happyHour?: string;  // set while a scheduled happy hour discounts this item
+  window?: { days: number[]; start: string; end: string }; // only orderable at these times (Kenya time)
+  requiresBottle?: boolean; // must be ordered together with a bottle
+  bottle?: boolean;          // this item counts as a bottle purchase
   hhPrice?: number;    // (staff view) the live happy-hour price
   available?: boolean; // false = sold out
   image?: string;
@@ -132,7 +135,7 @@ export interface Ad {
   emoji: string;
   theme: string;
   image?: string;
-  cta: { label: string; type: 'none' | 'menu' | 'item' | 'book' | 'code' | 'social'; target: string };
+  cta: { label: string; type: 'none' | 'menu' | 'item' | 'book' | 'code' | 'social' | 'event'; target: string };
   placements: Placement[];
   active: boolean;
   createdAt: number;
@@ -189,6 +192,7 @@ export interface BarEvent {
   sold: Record<string, number>;
   featured: boolean;
   published: boolean;
+  repeat?: 'weekly';
   createdAt: number;
 }
 export type TicketStatus = 'reserved' | 'paid' | 'checked-in' | 'cancelled';

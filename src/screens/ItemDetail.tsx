@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Layout';
 import { money } from '../config';
 import { flyToCart } from '../fx';
+import { inWindow, windowLabel } from '../time';
 
 export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
   const item = useStore((s) => s.menu.find((m) => m.id === id));
@@ -47,6 +48,8 @@ export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
           {item.tags?.map((t) => <span key={t}>{t}</span>)}
         </div>
         <Price item={item} />
+        {item.window && <p className={`small ${inWindow(item.window) ? 'plus' : 'note'}`}>🕑 Available {windowLabel(item.window)} (Kenya time){inWindow(item.window) ? ' — on now!' : ' — not available right now'}</p>}
+        {item.requiresBottle && <p className="small note">🍾 Order together with any bottle (e.g. a spirit "Bottle" option, champagne bottle or bottle bundle).</p>}
         <p className="muted">{item.description}</p>
 
         {item.options?.map((o, oi) => (
@@ -70,8 +73,8 @@ export function ItemDetail({ nav, id }: { nav: Nav; id: string }) {
       </div>
       <div className="sticky-cta">
         <Stepper value={qty} onChange={setQty} min={1} />
-        <button className="btn btn-primary grow" onClick={add} disabled={added || item.available === false}>
-          {item.available === false ? 'Sold out' : added ? <><Icon name="check" size={18} /> Added</> : <>Add · {money(unit * qty)}</>}
+        <button className="btn btn-primary grow" onClick={add} disabled={added || item.available === false || !inWindow(item.window)}>
+          {item.available === false ? 'Sold out' : !inWindow(item.window) ? 'Not available right now' : added ? <><Icon name="check" size={18} /> Added</> : <>Add · {money(unit * qty)}</>}
         </button>
       </div>
     </div>

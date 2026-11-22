@@ -49,6 +49,7 @@ export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
       </div>
       <div className="detail-body">
         {e.featured && <span className="tag tag-lime">★ Featured event</span>}
+        {e.repeat === 'weekly' && <span className="tag tag-purple">↻ Every {new Date(e.startsAt).toLocaleDateString(undefined, { weekday: 'long' })} — tickets are for the next one</span>}
         <h1 className="display-sm">{e.title}</h1>
         {e.subtitle && <p className="muted">{e.subtitle}</p>}
         <div className="info-card">

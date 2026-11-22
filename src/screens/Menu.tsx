@@ -9,6 +9,7 @@ import { Chip, TopBar } from '../components/Layout';
 import { AdBanner, HeroSlider } from '../components/Promo';
 import { money } from '../config';
 import { flyToCart } from '../fx';
+import { inWindow, windowLabel } from '../time';
 
 export function Menu({ nav, initial }: { nav: Nav; initial?: Category }) {
   const [section, setSection] = useState<Section>(initial ? sectionOf(initial) : 'alcoholic');
@@ -60,11 +61,13 @@ export function Menu({ nav, initial }: { nav: Nav; initial?: Category }) {
                 <div className="menu-row-foot">
                   <Price item={m} />
                   {m.options?.[0]?.choices.some((c) => c.name.startsWith('Single')) && <span className="tiny muted">per single</span>}
+                  {m.window && <span className={`tag ${inWindow(m.window) ? 'tag-lime' : ''}`}>🕑 {windowLabel(m.window)}</span>}
+                  {m.requiresBottle && <span className="tag tag-purple">🍾 With a bottle</span>}
                   {m.abv && <span className="tiny muted">{m.abv} ABV</span>}
                   {m.tags?.map((t) => <span key={t} className="tag">{t}</span>)}
                 </div>
               </div>
-              <button className="add-btn" aria-label={`Add ${m.name}`} disabled={m.available === false}
+              <button className="add-btn" aria-label={`Add ${m.name}`} disabled={m.available === false || !inWindow(m.window)}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (m.options?.length) return nav.go({ name: 'item', id: m.id });

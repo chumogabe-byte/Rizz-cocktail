@@ -185,6 +185,7 @@ function EventEditor({ id, initial, existingImage, onClose }: { id?: string; ini
         </div>
         <div className="row-gap wrap">
           <label className="field check"><input type="checkbox" checked={!!d.featured} onChange={(e) => setD({ ...d, featured: e.target.checked })} /><span>★ Feature in hero carousel</span></label>
+          <label className="field check"><input type="checkbox" checked={d.repeat === 'weekly'} onChange={(e) => setD({ ...d, repeat: e.target.checked ? 'weekly' : ('none' as never) })} /><span>↻ Repeats every week (same day & time)</span></label>
           <label className="field check"><input type="checkbox" checked={d.published !== false} onChange={(e) => setD({ ...d, published: e.target.checked })} /><span>Published (visible to guests)</span></label>
         </div>
         <div className="row-gap">

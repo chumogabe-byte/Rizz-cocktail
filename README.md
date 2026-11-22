@@ -100,6 +100,24 @@ Guests can **load money** into a Rizz Wallet and pay for **orders and event tick
 
 > A wallet belongs to the guest's Rizz account on their phone. If someone changes phones, an admin can move the balance with an adjustment.
 
+## Current promotions (loaded automatically)
+These ship as a **content pack** (`server/content-pack.js`). It's added to new and existing servers once on start. After that you own it: edit or delete anything in Rizz Admin and it won't come back.
+
+| Promo | How it works in the app |
+|---|---|
+| **Happy Hour: 3 cocktails for KSh 1,000** (2–5 PM daily) | Ad + *Happy Hour Trio* (pick any 3 classics). It can only be ordered 2–5 PM Kenya time; the server enforces this |
+| **Shisha Happy Hour** (2–5 PM daily) | New *Shisha* menu (shisha, shisha + 2 cocktails, + bucket of beers, + prosecco) with a scheduled 20% happy hour, plus an ad |
+| **Karaoke Sundays** | Event that repeats every Sunday 7 PM (free RSVP + reserved table with priority songs), plus an ad |
+| **Rizz XP × Homeboys** | Featured event with KSh 1,000 tickets, plus an ad (set the real date in Admin → Events) |
+| **Chinese Platter + select bottle** | Bundle at KSh 6,900 (normally 8,500) with a bottle choice and upgrades, plus an ad |
+| **Tattoo Saturdays** | Weekly Saturday event + ad + *Small Tattoo* for KSh 500, orderable only on Saturdays **with a bottle in the same order** |
+
+Reusable building blocks behind these, all editable in Rizz Admin:
+- **Menu items available only at certain times** (Menu & Prices → item → "Only available at certain times").
+- **"Counts as a bottle" / "Only with a bottle in the same order"** item rules.
+- **Weekly repeating events** (Events → "Repeats every week"). Tickets are for the next occurrence, and sales are counted per week.
+- **Ads that open an event or a specific menu item.**
+
 ## Happy hours (automatic)
 In Rizz Admin → Menu & Prices → **Happy hours**, schedule a discount: name, menu section (or the whole menu), % off, days and a time window (Kenya time; windows can run past midnight). While it runs:
 - guests see a **🍹 Happy hour is ON** banner on Home, plus a "Happy hour" badge and the reduced price on each item

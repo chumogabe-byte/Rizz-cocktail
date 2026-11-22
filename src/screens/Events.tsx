@@ -31,7 +31,8 @@ export const upcoming = (events: BarEvent[]) =>
 
 export function Events({ nav }: { nav: Nav }) {
   const events = upcoming(useStore((s) => s.events));
-  const ads = useStore((s) => s.ads).filter((a) => a.active);
+  // offers grid: skip ads that only point at an event (the event's own card is already shown)
+  const ads = useStore((s) => s.ads).filter((a) => a.active && a.cta.type !== 'event');
   const myTickets = useStore((s) => s.tickets).filter((t) => t.status !== 'cancelled' && t.startsAt > Date.now() - 6 * 3600e3).length;
   const [filter, setFilter] = useState<'all' | 'events' | 'offers'>('all');
   const act = useAdAction(nav);
@@ -72,6 +73,7 @@ export function Events({ nav }: { nav: Nav }) {
             {!t.e.image && <span className="tile-emoji">{t.e.emoji}</span>}
             <span className="tile-date"><small>{fmtDay(t.e.startsAt).dow}</small><b>{fmtDay(t.e.startsAt).day}</b></span>
             <span className={`tile-price ${priceFrom(t.e) === 'Sold out' ? 'out' : ''}`}>{priceFrom(t.e)}</span>
+            {t.e.repeat === 'weekly' && <span className="tile-repeat">↻ Every {new Date(t.e.startsAt).toLocaleDateString(undefined, { weekday: 'long' })}</span>}
             <span className="tile-copy"><strong>{t.e.title}</strong><small>{new Date(t.e.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {t.e.location}</small></span>
           </button>
         ) : (

@@ -2,9 +2,10 @@ import type { Category, MenuItem, Section } from '../types';
 import { getState } from '../store/store';
 
 export const SECTIONS: { id: Section; label: string; emoji: string }[] = [
-  { id: 'alcoholic', label: 'Alcoholic', emoji: '🍸' },
-  { id: 'soft', label: 'Soft drinks', emoji: '🥤' },
+  { id: 'alcoholic', label: 'Drinks', emoji: '🍸' },
+  { id: 'soft', label: 'Soft', emoji: '🥤' },
   { id: 'food', label: 'Food', emoji: '🍔' },
+  { id: 'bundles', label: 'Deals', emoji: '🎁' },
 ];
 
 export const CATEGORIES: { id: Category; label: string; emoji: string; section: Section }[] = [
@@ -24,6 +25,8 @@ export const CATEGORIES: { id: Category; label: string; emoji: string; section: 
   { id: 'small-plates', label: 'Small Plates', emoji: '🍢', section: 'food' },
   { id: 'mains', label: 'Mains', emoji: '🍔', section: 'food' },
   { id: 'desserts', label: 'Desserts', emoji: '🍫', section: 'food' },
+  { id: 'bundles', label: 'Bundles & Deals', emoji: '🎁', section: 'bundles' },
+  { id: 'shisha', label: 'Shisha', emoji: '💨', section: 'bundles' },
 ];
 
 export const sectionOf = (c: Category) => CATEGORIES.find((x) => x.id === c)!.section;

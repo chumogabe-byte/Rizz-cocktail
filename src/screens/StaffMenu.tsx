@@ -155,6 +155,26 @@ function ItemEditor({ id, initial, existingImage, onClose }: { id?: string; init
           <label className="field"><span>ABV (optional)</span><input value={d.abv ?? ''} onChange={(e) => setD({ ...d, abv: e.target.value })} placeholder="14%" /></label>
           <label className="field check"><input type="checkbox" checked={!!d.popular} onChange={(e) => setD({ ...d, popular: e.target.checked })} /><span>Mark as "Hot" / popular</span></label>
           <label className="field check"><input type="checkbox" checked={d.available !== false} onChange={(e) => setD({ ...d, available: e.target.checked })} /><span>Available (untick = sold out)</span></label>
+          <label className="field check"><input type="checkbox" checked={!!d.bottle} onChange={(e) => setD({ ...d, bottle: e.target.checked })} /><span>🍾 Counts as a bottle purchase</span></label>
+          <label className="field check"><input type="checkbox" checked={!!d.requiresBottle} onChange={(e) => setD({ ...d, requiresBottle: e.target.checked })} /><span>Only with a bottle in the same order</span></label>
+          <label className="field check"><input type="checkbox" checked={!!d.window} onChange={(e) => setD({ ...d, window: e.target.checked ? { days: [0, 1, 2, 3, 4, 5, 6], start: '14:00', end: '17:00' } : (null as never) })} /><span>🕑 Only available at certain times</span></label>
+        </div>
+        {d.window && (
+          <div className="hh-editor stack">
+            <div className="row-gap wrap">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dn, i) => (
+                <button key={dn} type="button" className={`chip ${d.window!.days.includes(i) ? 'chip-active' : ''}`}
+                  onClick={() => setD({ ...d, window: { ...d.window!, days: d.window!.days.includes(i) ? d.window!.days.filter((x) => x !== i) : [...d.window!.days, i] } })}>{dn}</button>
+              ))}
+            </div>
+            <div className="two-col">
+              <label className="field"><span>From (Kenya time)</span><input type="time" value={d.window.start} onChange={(e) => setD({ ...d, window: { ...d.window!, start: e.target.value } })} /></label>
+              <label className="field"><span>Until</span><input type="time" value={d.window.end} onChange={(e) => setD({ ...d, window: { ...d.window!, end: e.target.value } })} /></label>
+            </div>
+            <p className="tiny muted">Outside these times guests see the item but can't order it — perfect for happy-hour deals.</p>
+          </div>
+        )}
+        <div>
         </div>
 
         <div className="field">

@@ -126,6 +126,8 @@ export function AdsPanel() {
 
 function AdEditor({ id, initial, existingImage, onClose }: { id?: string; initial: Partial<Ad> & { image?: string; removeImage?: boolean }; existingImage?: string; onClose: () => void }) {
   const spaces = useStore((s) => s.spaces);
+  const events = useStore((s) => s.events);
+  const menu = useStore((s) => s.menu);
   const [ad, setAd] = useState(initial);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -170,12 +172,14 @@ function AdEditor({ id, initial, existingImage, onClose }: { id?: string; initia
           <label className="field"><span>Button action</span>
             <select value={cta.type} onChange={(e) => setAd({ ...ad, cta: { ...cta, type: e.target.value as Ad['cta']['type'], target: '' } })}>
               <option value="none">No button</option><option value="menu">Open menu section</option><option value="book">Book a space</option>
-              <option value="code">Give a promo code</option><option value="social">Open Moments</option>
+              <option value="code">Give a promo code</option><option value="social">Open Moments</option><option value="event">Open an event</option><option value="item">Open a menu item</option>
             </select>
           </label>
           {cta.type !== 'none' && <label className="field"><span>Button text</span><input maxLength={24} value={cta.label} onChange={(e) => setAd({ ...ad, cta: { ...cta, label: e.target.value } })} /></label>}
           {cta.type === 'menu' && <label className="field"><span>Menu section</span><select value={cta.target} onChange={(e) => setAd({ ...ad, cta: { ...cta, target: e.target.value } })}><option value="">All</option>{CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
           {cta.type === 'book' && <label className="field"><span>Space</span><select value={cta.target} onChange={(e) => setAd({ ...ad, cta: { ...cta, target: e.target.value } })}><option value="">Any</option>{spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
+          {cta.type === 'event' && <label className="field"><span>Event</span><select value={cta.target} onChange={(e) => setAd({ ...ad, cta: { ...cta, target: e.target.value } })}><option value="">Choose…</option>{events.map((ev) => <option key={ev.id} value={ev.id}>{ev.title}</option>)}</select></label>}
+          {cta.type === 'item' && <label className="field"><span>Menu item</span><select value={cta.target} onChange={(e) => setAd({ ...ad, cta: { ...cta, target: e.target.value } })}><option value="">Choose…</option>{menu.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>}
           {cta.type === 'code' && <label className="field"><span>Promo code</span><input value={cta.target} onChange={(e) => setAd({ ...ad, cta: { ...cta, target: e.target.value.toUpperCase() } })} placeholder="WELCOME10" /></label>}
         </div>
         <div className="field"><span>Show on</span>

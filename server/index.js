@@ -14,6 +14,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyContentPack } from './content-pack.js';
 import { CALLBACK_SECRET, PUBLIC_URL, friendlyResult, mpesaInfo, normalizePhone, parseCallback, stkPush, stkQuery } from './mpesa.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -49,8 +50,10 @@ const DEFAULT_VOUCHERS = [
 ];
 
 // Demo events, dated relative to first run
-const dayAt = (days, hh) => { const d = new Date(); d.setDate(d.getDate() + days); d.setHours(hh, 0, 0, 0); return d.getTime(); };
-const nextDow = (dow) => { const d = new Date(); return (dow - d.getDay() + 7) % 7 || 7; };
+// Times are Kenya time (EAT = UTC+3) regardless of the server's own time zone (Render runs on UTC).
+const eatNow = () => new Date(Date.now() + 3 * 3600e3);
+const dayAt = (days, hh) => { const n = eatNow(); return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + days, hh - 3, 0); };
+const nextDow = (dow) => (dow - eatNow().getUTCDay() + 7) % 7 || 7;
 const DEFAULT_EVENTS = [
   { id: 'ev-rooftop', title: 'Rooftop Sessions: Afro House', subtitle: 'Resident DJs till late', emoji: '🎧', theme: 'blue',
     startsAt: dayAt(nextDow(5), 21), endsAt: dayAt(nextDow(5) + 1, 3), location: 'Rooftop Terrace',
@@ -88,6 +91,8 @@ try {
   db.settings = { ...DEFAULT_SETTINGS, ...db.settings };
   db.content = { bar: { ...DEFAULT_CONTENT.bar, ...db.content?.bar }, welcome: { ...DEFAULT_CONTENT.welcome, ...db.content?.welcome }, home: { ...DEFAULT_CONTENT.home, ...db.content?.home } };
 } catch { /* first run */ }
+// One-time promos/events/menu additions (never re-added once seeded; admin edits are kept)
+if (applyContentPack(db)) setTimeout(() => save(), 0);
 
 let saveTimer = null;
 function save() {
@@ -146,6 +151,19 @@ function activeHappyHours() {
     return (h.days.includes(day) && minutes >= a) || (h.days.includes(prevDay) && minutes < b);
   });
 }
+/** Is an item with an availability window (e.g. happy-hour-only) orderable right now? */
+function inWindow(w) {
+  if (!w) return true;
+  const { day, minutes } = nairobiNow();
+  const a = toMin(w.start), b = toMin(w.end);
+  if (a <= b) return w.days.includes(day) && minutes >= a && minutes < b;
+  return (w.days.includes(day) && minutes >= a) || (w.days.includes((day + 6) % 7) && minutes < b);
+}
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const windowText = (w) => `${w.days.length === 7 ? 'daily' : w.days.map((d) => DAY_NAMES[d]).join(', ')} ${w.start}–${w.end}`;
+/** A line counts as a bottle purchase if a "Bottle…" option was chosen or the item itself is a bottle. */
+const isBottleLine = (l, item) => !!item && (item.bottle === true || (l.choices || []).some((c) => /^Bottle\b/i.test(c)));
+
 /** Item with the best current price applied (offer price or running happy hour). */
 function effectiveItem(item, hhs = activeHappyHours()) {
   const hh = hhs.filter((h) => h.category === 'all' || h.category === item.category).sort((x, y) => y.percent - x.percent)[0];
@@ -172,7 +190,7 @@ function priceFor(rawItem, choiceNames = []) {
   return round(base + extra);
 }
 const CATEGORY_IDS = ['cocktails', 'vodka', 'gin', 'whiskey', 'rum', 'tequila', 'wine', 'beer', 'champagne', 'liqueurs', 'shots',
-  'soft', 'mocktails', 'small-plates', 'mains', 'desserts'];
+  'soft', 'mocktails', 'small-plates', 'mains', 'desserts', 'bundles', 'shisha'];
 
 const ORDER_STATUSES = ['new', 'preparing', 'ready', 'served', 'cancelled'];
 const BOOKING_STATUSES = ['pending', 'confirmed', 'declined', 'checked-in', 'cancelled'];
@@ -302,9 +320,20 @@ function viewFor(c) {
   };
 }
 /** Event + tickets sold per type (public — counts only). */
-function withSales(e) {
+/** Weekly events roll forward to their next upcoming date once the current one ends. */
+function occurrence(e) {
+  if (e.repeat !== 'weekly') return e;
+  const len = (e.endsAt || e.startsAt + 3 * 3600e3) - e.startsAt;
+  let start = e.startsAt;
+  while (start + len < Date.now()) start += 7 * 864e5;
+  return { ...e, startsAt: start, endsAt: start + len };
+}
+/** Event (current occurrence) + tickets sold per type for that occurrence (public — counts only). */
+function withSales(raw) {
+  const e = occurrence(raw);
   const sold = {};
-  for (const t of db.tickets) if (t.eventId === e.id && t.status !== 'cancelled') for (const l of t.lines) sold[l.typeId] = (sold[l.typeId] || 0) + l.qty;
+  for (const t of db.tickets) if (t.eventId === e.id && t.status !== 'cancelled' && (e.repeat !== 'weekly' || t.startsAt === e.startsAt))
+    for (const l of t.lines) sold[l.typeId] = (sold[l.typeId] || 0) + l.qty;
   return { ...e, sold };
 }
 function pushEvents() { for (const c of clients) send(c, 'events', (c.staff ? db.events : db.events.filter((e) => e.published)).map(withSales)); }
@@ -444,8 +473,15 @@ app.post('/api/orders', (req, res) => {
     const item = db.menu.find((m) => m.id === l.itemId);
     if (!item) return res.status(400).json({ error: `${l.name} is no longer on the menu — please remove it from your order.` });
     if (item.available === false) return res.status(400).json({ error: `Sorry, ${item.name} is sold out right now.` });
+    if (item.window && !inWindow(item.window)) return res.status(400).json({ error: `${item.name} is only available ${windowText(item.window)} (Kenya time).` });
     l.name = item.name;
     l.unitPrice = priceFor(item, l.choices);
+  }
+  // Items like "Tattoo Saturday" need a bottle in the same order
+  for (const l of clean) {
+    const item = db.menu.find((m) => m.id === l.itemId);
+    if (item?.requiresBottle && !clean.some((x) => isBottleLine(x, db.menu.find((m) => m.id === x.itemId))))
+      return res.status(400).json({ error: `${item.name} comes with a bottle purchase — add a bottle to this order.` });
   }
   // table = bring to my seat (seat required) · pickup = collect at the bar · find = no seat, staff find the guest by name
   const fulfilment = ['pickup', 'find'].includes(b.fulfilment) ? b.fulfilment : 'table';
@@ -623,6 +659,7 @@ function cleanEvent(b, prev = {}) {
     startsAt: ts(b.startsAt, prev.startsAt), endsAt: ts(b.endsAt, prev.endsAt),
     ticketTypes: types.length ? types : [{ id: 'tt-free', name: 'Free RSVP', price: 0, capacity: 100 }],
     featured: typeof b.featured === 'boolean' ? b.featured : prev.featured ?? false,
+    repeat: b.repeat === 'weekly' ? 'weekly' : b.repeat === 'none' || b.repeat === null ? undefined : prev.repeat,
     published: typeof b.published === 'boolean' ? b.published : prev.published ?? true,
   };
 }
@@ -657,8 +694,9 @@ app.delete('/api/events/:id', requireAdmin, (req, res) => {
 });
 
 app.post('/api/events/:id/tickets', (req, res) => {
-  const ev = db.events.find((e) => e.id === req.params.id && e.published);
-  if (!ev) return res.status(404).json({ error: 'Event not found' });
+  const rawEv = db.events.find((e) => e.id === req.params.id && e.published);
+  if (!rawEv) return res.status(404).json({ error: 'Event not found' });
+  const ev = occurrence(rawEv);
   if ((ev.endsAt || ev.startsAt) < Date.now()) return res.status(400).json({ error: 'This event has already happened.' });
   const b = req.body || {};
   const customerId = str(b.customerId, 64);
@@ -1001,6 +1039,10 @@ function cleanItem(b, prev = {}) {
     popular: typeof b.popular === 'boolean' ? b.popular : prev.popular ?? false,
     available: typeof b.available === 'boolean' ? b.available : prev.available ?? true,
     options: opts?.length ? opts : undefined,
+    window: b.window === null ? undefined : b.window && Array.isArray(b.window.days) && /^\d{2}:\d{2}$/.test(b.window.start) && /^\d{2}:\d{2}$/.test(b.window.end)
+      ? { days: [...new Set(b.window.days.map(Number).filter((d) => d >= 0 && d <= 6))], start: b.window.start, end: b.window.end } : prev.window,
+    requiresBottle: typeof b.requiresBottle === 'boolean' ? b.requiresBottle : prev.requiresBottle ?? false,
+    bottle: typeof b.bottle === 'boolean' ? b.bottle : prev.bottle ?? false,
   };
 }
 /** Guests get happy-hour prices applied; staff get the raw menu (for editing) plus the live price marker. */
@@ -1067,6 +1109,7 @@ app.patch('/api/menu/:id', requireAdmin, (req, res) => {
   const prev = db.menu[i];
   const next = { ...prev, ...cleanItem(req.body || {}, prev) };
   if (next.offerPrice === undefined) delete next.offerPrice;
+  if (next.window === undefined) delete next.window;
   if (req.body.image) { removeImage(prev.image); next.image = saveImage(req.body.image) || undefined; }
   if (req.body.removeImage) { removeImage(prev.image); delete next.image; }
   db.menu[i] = next;
@@ -1097,7 +1140,7 @@ app.delete('/api/menu/:id', requireAdmin, (req, res) => {
 
 // ---------- ads / offers ----------
 const PLACEMENTS = ['home', 'menu', 'book', 'social', 'events', 'tv'];
-const CTA_TYPES = ['none', 'menu', 'item', 'book', 'code', 'social'];
+const CTA_TYPES = ['none', 'menu', 'item', 'book', 'code', 'social', 'event'];
 function cleanAd(b, prev = {}) {
   const cta = b.cta || prev.cta || {};
   return {

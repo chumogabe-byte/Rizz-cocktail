@@ -796,3 +796,5 @@ body.scrolled .topbar-title { letter-spacing: -.01em; }
 .hh-tag { color: #fbbf24; font-weight: 700; }
 .inline-price { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; min-width: 150px; }
 .inline-price input { width: 92px; padding: 8px 10px; border-radius: 10px; text-align: right; font-weight: 700; }
+.tile-repeat { position: absolute; left: 10px; top: 62px; z-index: 1; font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 7px; background: rgba(14,11,26,.75); color: var(--lime); }
+.seg button { font-size: 13px; }
