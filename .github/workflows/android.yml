@@ -10,6 +10,10 @@ on:
         description: "Server address baked into both apps (e.g. https://rizz.example.com). Leave blank to use the RIZZ_API_URL variable, or ask on first launch."
         required: false
         default: ''
+      release_tag:
+        description: "Optional: publish a GitHub Release with this tag (e.g. v1.0.0) and the APK attached for direct download"
+        required: false
+        default: ''
       apps:
         description: "What to build: the Rizz app (guest + staff/admin logins), the optional admin-only app, or both"
         type: choice
@@ -84,6 +88,22 @@ jobs:
         with:
           name: rizz-admin-only-apk
           path: rizz-admin.apk
+
+      - name: Publish release (manual run with a release tag)
+        if: github.event.inputs.release_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          name: Rizz ${{ github.event.inputs.release_tag }}
+          body: |
+            **Rizz — one app for guests and staff/admin.**
+            Download `rizz-cocktail-bar.apk` below on an Android phone, open it and allow "Install unknown apps".
+            Staff & admin: tap "Staff & admin login" on the welcome screen.
+          fail_on_unmatched_files: false
+          files: |
+            rizz-cocktail-bar.apk
+            rizz-admin.apk
 
       - name: Attach to release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')
