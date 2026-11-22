@@ -16,6 +16,7 @@ export type Route =
   | { name: 'events' }
   | { name: 'event'; id: string }
   | { name: 'tickets' }
+  | { name: 'wallet' }
   | { name: 'staff' };
 
 export type Nav = { go: (r: Route) => void; back: () => void };

@@ -14,7 +14,8 @@ export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const user = useStore((s) => s.user);
-  const [payNow, setPayNow] = useState(true);
+  const walletBalance = useStore((s) => s.wallet?.balance ?? 0);
+  const [payChoice, setPayChoice] = useState<'wallet' | 'mpesa' | 'door' | null>(null);
   const [phone, setPhone] = useState(user?.phone || '');
   if (!e) return <div className="screen"><p className="muted pad">Loading event…</p></div>;
 
@@ -22,14 +23,17 @@ export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
   const count = Object.values(qty).reduce((a, b) => a + b, 0);
   const past = (e.endsAt || e.startsAt) < Date.now();
   const paidEvent = e.ticketTypes.some((t) => t.price > 0);
+  const pay = payChoice ?? (walletBalance > 0 && walletBalance >= total ? 'wallet' : 'mpesa');
+  const payNow = pay !== 'door';
 
   const buy = async () => {
-    if (total > 0 && payNow && !isValidKePhone(phone)) return setErr('Enter your M-Pesa number, e.g. 0712 345 678.');
+    if (total > 0 && pay === 'mpesa' && !isValidKePhone(phone)) return setErr('Enter your M-Pesa number, e.g. 0712 345 678.');
+    if (total > 0 && pay === 'wallet' && walletBalance < total) return setErr('Not enough in your wallet — top up or choose M-Pesa.');
     setBusy(true); setErr('');
     try {
-      const t = await actions.buyTickets(e.id, Object.entries(qty).filter(([, q]) => q > 0).map(([typeId, q]) => ({ typeId, qty: q })));
+      const t = await actions.buyTickets(e.id, Object.entries(qty).filter(([, q]) => q > 0).map(([typeId, q]) => ({ typeId, qty: q })), total > 0 && pay === 'wallet' ? 'wallet' : undefined);
       confetti({ emojis: ['🎟️', '🎉', '🪩', '✨'] });
-      if (total > 0 && payNow) await actions.payMpesa('ticket', t.id, phone).catch(() => {});
+      if (total > 0 && pay === 'mpesa') await actions.payMpesa('ticket', t.id, phone).catch(() => {});
       nav.go({ name: 'tickets' });
     } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
   };
@@ -74,13 +78,21 @@ export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
           <div className="card stack">
             <h3>Payment</h3>
             <div className="seg">
-              <button className={payNow ? 'on' : ''} onClick={() => setPayNow(true)}>📱 Pay now with M-Pesa</button>
-              <button className={!payNow ? 'on' : ''} onClick={() => setPayNow(false)}>🚪 Pay at the door</button>
+              <button className={pay === 'wallet' ? 'on' : ''} onClick={() => setPayChoice('wallet')}>👛 Wallet</button>
+              <button className={pay === 'mpesa' ? 'on' : ''} onClick={() => setPayChoice('mpesa')}>📱 M-Pesa</button>
+              <button className={pay === 'door' ? 'on' : ''} onClick={() => setPayChoice('door')}>🚪 At the door</button>
             </div>
-            {payNow && <label className="field"><span>M-Pesa number</span><input inputMode="tel" value={phone} onChange={(x) => { setPhone(x.target.value); setErr(''); }} placeholder="0712 345 678" /></label>}
+            {pay === 'wallet' && (
+              <div className={`wallet-pay ${walletBalance >= total ? 'ok' : 'low'}`}>
+                <div className="row-body"><strong>Rizz Wallet · {money(walletBalance)}</strong>
+                  <span className="tiny">{walletBalance >= total ? 'Tickets paid instantly' : `You need ${money(total - walletBalance)} more`}</span></div>
+                <button className="btn btn-ghost sm" onClick={() => nav.go({ name: 'wallet' })}>Top up</button>
+              </div>
+            )}
+            {pay === 'mpesa' && <label className="field"><span>M-Pesa number</span><input inputMode="tel" value={phone} onChange={(x) => { setPhone(x.target.value); setErr(''); }} placeholder="0712 345 678" /></label>}
           </div>
         )}
-        <p className="tiny muted">{total > 0 ? (payNow ? "Your seats are held while you approve the M-Pesa prompt. Your QR tickets appear in My tickets — they're marked Paid the moment M-Pesa confirms." : 'Your tickets are reserved instantly. Pay at the door or bar — show the QR codes in My tickets.') + ' Paid tickets earn Rizz Rewards points.' : count > 0 || !paidEvent ? 'Free RSVP — show your QR code at the door to skip the queue.' : 'Choose your tickets above, then pay with M-Pesa or at the door.'}</p>
+        <p className="tiny muted">{total > 0 ? (pay === 'wallet' ? 'Paid straight from your Rizz Wallet — your QR tickets are ready instantly.' : payNow ? "Your seats are held while you approve the M-Pesa prompt. Your QR tickets appear in My tickets — they're marked Paid the moment M-Pesa confirms." : 'Your tickets are reserved instantly. Pay at the door or bar — show the QR codes in My tickets.') + ' Paid tickets earn Rizz Rewards points.' : count > 0 || !paidEvent ? 'Free RSVP — show your QR code at the door to skip the queue.' : 'Choose your tickets above, then pay with M-Pesa or at the door.'}</p>
         {err && <p className="error">{err}</p>}
       </div>
       {!past && (

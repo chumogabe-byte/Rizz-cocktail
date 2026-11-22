@@ -25,7 +25,9 @@ export function Cart({ nav }: { nav: Nav }) {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const user = useStore((s) => s.user);
-  const [payMethod, setPayMethod] = useState<'mpesa' | 'cash'>('mpesa');
+  const [chosenPay, setPayMethod] = useState<'mpesa' | 'cash' | 'wallet' | null>(null);
+  const [locationHint, setLocationHint] = useState('');
+  const walletBalance = useStore((s) => s.wallet?.balance ?? 0);
   const [mpesaPhone, setMpesaPhone] = useState(user?.phone || '');
 
   const subtotal = cartSubtotal(cart);
@@ -33,6 +35,8 @@ export function Cart({ nav }: { nav: Nav }) {
   const fee = Math.round((subtotal - discount) * bar.serviceFeeRate);
   const tip = Math.round(subtotal * tipRate);
   const total = subtotal - discount + fee + tip;
+  // Default to the wallet when it covers the order, otherwise M-Pesa
+  const payMethod = chosenPay ?? (walletBalance > 0 && walletBalance >= Math.ceil(total) ? 'wallet' : 'mpesa');
 
   // (Re)validate the applied code whenever it or the basket changes — the server is the source of truth.
   useEffect(() => {
@@ -55,12 +59,13 @@ export function Cart({ nav }: { nav: Nav }) {
   }
 
   const place = async () => {
-    if (fulfilment === 'table' && !table.trim()) return setErr('Enter your table or seat number so we can find you.');
+    if (fulfilment === 'table' && !table.trim()) return setErr('Enter your table or seat number — or choose "Find me" if you don\'t have a seat.');
+    if (payMethod === 'wallet' && walletBalance < Math.ceil(total)) return setErr('Not enough in your wallet — top up or pick another payment method.');
     if (payMethod === 'mpesa' && !isValidKePhone(mpesaPhone)) return setErr('Enter your M-Pesa number, e.g. 0712 345 678.');
     if (appliedCode && !promo) actions.applyCode(null);
     setBusy(true); setErr('');
     try {
-      const order = await actions.placeOrder({ fulfilment, table: fulfilment === 'table' ? table.trim() : undefined, notes: notes.trim() || undefined, tip, paymentMethod: payMethod });
+      const order = await actions.placeOrder({ fulfilment, table: fulfilment === 'table' ? table.trim() : undefined, locationHint: fulfilment === 'find' ? locationHint.trim() || undefined : undefined, notes: notes.trim() || undefined, tip, paymentMethod: payMethod });
       // Send the PIN prompt straight away; if it can't be sent the order page lets them retry or pay at the bar.
       if (payMethod === 'mpesa') await actions.payMpesa('order', order.id, mpesaPhone).catch(() => {});
       nav.go({ name: 'order', id: order.id });
@@ -96,14 +101,21 @@ export function Cart({ nav }: { nav: Nav }) {
       <div className="card stack">
         <h3>How should we serve you?</h3>
         <div className="seg">
-          <button className={fulfilment === 'table' ? 'on' : ''} onClick={() => setFulfilment('table')}>🪑 To my table</button>
-          <button className={fulfilment === 'pickup' ? 'on' : ''} onClick={() => setFulfilment('pickup')}>🛎️ Pickup at bar</button>
+          <button className={fulfilment === 'table' ? 'on' : ''} onClick={() => setFulfilment('table')}>🪑 To my seat</button>
+          <button className={fulfilment === 'find' ? 'on' : ''} onClick={() => { setFulfilment('find'); setErr(''); }}>🙋 Find me</button>
+          <button className={fulfilment === 'pickup' ? 'on' : ''} onClick={() => { setFulfilment('pickup'); setErr(''); }}>🛎️ Pickup</button>
         </div>
         {fulfilment === 'table' && (
           <label className="field"><span>Table / seat number</span>
             <input value={table} onChange={(e) => { setTable(e.target.value); setErr(''); }} placeholder="e.g. 12 or Bar 3" />
           </label>
         )}
+        {fulfilment === 'find' && (
+          <label className="field"><span>No seat needed — we'll find you by name{user?.name ? ` (${user.name})` : ''}. Where are you? (optional)</span>
+            <input value={locationHint} onChange={(e) => setLocationHint(e.target.value)} placeholder="e.g. near the DJ booth, red jacket" maxLength={80} />
+          </label>
+        )}
+        {fulfilment === 'pickup' && <p className="tiny muted">We'll notify you here when it's ready — collect at the bar with your order code.</p>}
         <label className="field"><span>Notes for the bar (optional)</span>
           <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Bring everything together, please" />
         </label>
@@ -130,10 +142,19 @@ export function Cart({ nav }: { nav: Nav }) {
       <div className="card stack">
         <h3>Payment</h3>
         <div className="seg">
+          <button className={payMethod === 'wallet' ? 'on' : ''} onClick={() => setPayMethod('wallet')}>👛 Wallet</button>
           <button className={payMethod === 'mpesa' ? 'on' : ''} onClick={() => setPayMethod('mpesa')}>📱 M-Pesa</button>
-          <button className={payMethod === 'cash' ? 'on' : ''} onClick={() => setPayMethod('cash')}>💵 Pay at the bar</button>
+          <button className={payMethod === 'cash' ? 'on' : ''} onClick={() => setPayMethod('cash')}>💵 At the bar</button>
         </div>
-        {payMethod === 'mpesa' ? (
+        {payMethod === 'wallet' ? (
+          <div className={`wallet-pay ${walletBalance >= Math.ceil(total) ? 'ok' : 'low'}`}>
+            <div className="row-body">
+              <strong>Rizz Wallet · {money(walletBalance)}</strong>
+              <span className="tiny">{walletBalance >= Math.ceil(total) ? `Paid instantly · ${money(walletBalance - Math.ceil(total))} left after this order` : `You need ${money(Math.ceil(total) - walletBalance)} more`}</span>
+            </div>
+            <button className="btn btn-ghost sm" onClick={() => nav.go({ name: 'wallet' })}>Top up</button>
+          </div>
+        ) : payMethod === 'mpesa' ? (
           <label className="field"><span>M-Pesa number — you'll get a PIN prompt after placing the order</span>
             <input inputMode="tel" value={mpesaPhone} onChange={(e) => { setMpesaPhone(e.target.value); setErr(''); }} placeholder="0712 345 678" />
           </label>
@@ -158,7 +179,7 @@ export function Cart({ nav }: { nav: Nav }) {
 
       {err && <p className="error">{err}</p>}
       <div className="sticky-cta">
-        <button className="btn btn-primary grow" onClick={place} disabled={busy}>{busy ? 'Sending to the bar…' : payMethod === 'mpesa' ? <>Order & pay {money(total)} with M-Pesa</> : <>Place order · {money(total)}</>}</button>
+        <button className="btn btn-primary grow" onClick={place} disabled={busy}>{busy ? 'Sending to the bar…' : payMethod === 'wallet' ? <>Pay {money(total)} from wallet</> : payMethod === 'mpesa' ? <>Order & pay {money(total)} with M-Pesa</> : <>Place order · {money(total)}</>}</button>
       </div>
     </div>
   );

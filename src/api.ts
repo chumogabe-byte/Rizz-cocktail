@@ -1,4 +1,4 @@
-import type { AppContent, Space, BarEvent, TicketOrder, MenuItem, Ad, Booking, CustomerStats, Order, Post, Settings, Voucher } from './types';
+import type { Wallet, AppContent, Space, BarEvent, TicketOrder, MenuItem, Ad, Booking, CustomerStats, Order, Post, Settings, Voucher } from './types';
 
 /**
  * Where the backend lives.
@@ -52,6 +52,7 @@ export interface Snapshot {
   content: AppContent;
   spaces: Space[];
   role: 'admin' | 'staff' | null;
+  wallet: Wallet | null;
   mpesa: { mode: 'mock' | 'sandbox' | 'production'; till: string; type: 'till' | 'paybill'; shortcode: string | null; callbackConfigured: boolean };
 }
 
@@ -67,6 +68,8 @@ type Handlers = {
   events: (e: BarEvent[]) => void;
   ticket: (t: TicketOrder) => void;
   content: (c: AppContent) => void;
+  wallet: (w: Wallet) => void;
+  walletChanged: (x: { customerId: string }) => void;
   spaces: (s: Space[]) => void;
   status: (online: boolean) => void;
 };
@@ -90,7 +93,7 @@ export function subscribe(who: { customerId: string; token: string | null }, h: 
     const on = <T,>(type: string, fn: (d: T) => void) => es!.addEventListener(type, (e) => fn(JSON.parse((e as MessageEvent).data)));
     on<Snapshot>('snapshot', (d) => { h.status(true); h.snapshot(d); });
     on('order', h.order); on('booking', h.booking); on('post', h.post);
-    on('ads', h.ads); on('vouchers', h.vouchers); on('me', h.me); on('menu', h.menu); on('events', h.events); on('ticket', h.ticket); on('content', h.content); on('spaces', h.spaces);
+    on('ads', h.ads); on('vouchers', h.vouchers); on('me', h.me); on('menu', h.menu); on('events', h.events); on('ticket', h.ticket); on('content', h.content); on('wallet', h.wallet); on('walletChanged', h.walletChanged); on('spaces', h.spaces);
     es.onerror = () => {
       h.status(false);
       es?.close();

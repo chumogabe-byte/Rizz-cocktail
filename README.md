@@ -88,6 +88,23 @@ Server settings (environment variables):
 | `STAFF_PIN` | `1234` | Staff PIN: operations only. **Change this.** |
 | `DATA_FILE` | `server/data/db.json` | Where data is saved. Photos go in an `uploads/` folder next to it. |
 
+## Rizz Wallet
+
+Guests can **load money** into a Rizz Wallet and pay for **orders and event tickets in one tap**.
+
+- **Top up**: with M-Pesa (quick amounts KSh 500 to 10,000, or any amount from KSh 50), or with **cash at the bar** (staff add it in Rizz Admin → Wallets).
+- **Pay**: the wallet is the default payment whenever it covers the total. Unpaid orders and tickets can also be paid from the wallet later. Payment is instant, and the order goes straight in as **Paid**.
+- **Refunds**: if staff cancel a wallet-paid order or ticket, the money goes back to the wallet automatically.
+- **Top-up bonus promo**: in Rizz Admin → Wallets, set "X% extra on top-ups of at least KSh Y". It applies to M-Pesa and cash top-ups, and guests see the offer on their wallet screen.
+- **History**: guests see every top-up, bonus, payment and refund with a running balance.
+- **Admin → Wallets**: totals held in wallets, top-ups, net wallet spend and bonuses given; find any guest; record **cash top-ups** (staff); **adjust** balances (admin only), for example moving a balance to a guest's new phone; recent activity log.
+- **Rules on the server**: balances can never go negative, payments are deducted at the moment an order is created, and every change is recorded.
+
+> A wallet belongs to the guest's Rizz account on their phone. If someone changes phones, an admin can move the balance with an adjustment.
+
+## Serving options
+At checkout guests choose **🪑 To my seat** (table or seat number), **🙋 Find me** (no seat needed, with an optional hint like "near the DJ booth, red jacket"; staff see the guest's name and hint on the ticket), or **🛎️ Pickup** at the bar.
+
 ## M-Pesa payments
 
 Guests can pay for **orders** and **event tickets** with **M-Pesa Express (STK Push)** to the Rizz **Buy Goods Till 1750964**. They choose M-Pesa at checkout, confirm their Safaricom number, and approve the PIN prompt on their phone. The order or ticket switches to **Paid** live, with the M-Pesa receipt number, on the guest's phone and the staff console. Guests can also choose **Pay at the bar / door**, and staff mark those paid (cash or card).

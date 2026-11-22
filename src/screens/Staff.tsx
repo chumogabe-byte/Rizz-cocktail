@@ -7,12 +7,13 @@ import { bookingStatusText, fmtDate } from './BookingDetail';
 import { AdsPanel, CustomersPanel, PromosPanel, SocialPanel } from './StaffMarketing';
 import { MenuPanel } from './StaffMenu';
 import { SettingsPanel, SpacesPanel } from '../admin/AdminContent';
+import { WalletsPanel } from '../admin/AdminWallets';
 import { getServerUrl } from '../api';
 import type { StaffRole } from '../types';
 import { PayBadge } from '../components/MpesaPay';
 import { EventsPanel } from './StaffEvents';
 
-type Tab = 'orders' | 'bookings' | 'events' | 'menu' | 'spaces' | 'settings' | 'promos' | 'ads' | 'social' | 'customers' | 'overview';
+type Tab = 'orders' | 'bookings' | 'events' | 'menu' | 'spaces' | 'settings' | 'wallets' | 'promos' | 'ads' | 'social' | 'customers' | 'overview';
 
 const COLUMNS: { s: OrderStatus; title: string; next?: OrderStatus; cta?: string }[] = [
   { s: 'new', title: 'New', next: 'preparing', cta: 'Accept & prepare' },
@@ -48,7 +49,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   { group: 'Operations', items: [['overview', '📊', 'Dashboard', ['admin']], ['orders', '🧾', 'Orders', ['admin', 'staff']], ['bookings', '📅', 'Bookings', ['admin', 'staff']], ['events', '🎉', 'Events & Tickets', ['admin', 'staff']]] },
   { group: 'Catalogue', items: [['menu', '🍸', 'Menu & Prices', ['admin']], ['spaces', '🛋️', 'Spaces', ['admin']]] },
   { group: 'Marketing', items: [['ads', '📣', 'Offers & Hero slides', ['admin']], ['promos', '🎟️', 'Promo codes & Rewards', ['admin']], ['social', '📸', 'Moments', ['admin', 'staff']]] },
-  { group: 'People & app', items: [['customers', '👥', 'Customers', ['admin']], ['settings', '🎨', 'App & Branding', ['admin']]] },
+  { group: 'People & app', items: [['wallets', '👛', 'Wallets', ['admin', 'staff']], ['customers', '👥', 'Customers', ['admin']], ['settings', '🎨', 'App & Branding', ['admin']]] },
 ];
 
 export function Staff({ onExit }: { onExit: () => void }) {
@@ -147,6 +148,7 @@ export function Staff({ onExit }: { onExit: () => void }) {
       {tab === 'events' && <EventsPanel />}
       {tab === 'menu' && <MenuPanel />}
       {tab === 'spaces' && <SpacesPanel />}
+      {tab === 'wallets' && <WalletsPanel />}
       {tab === 'settings' && <SettingsPanel />}
       {tab === 'promos' && <PromosPanel />}
       {tab === 'ads' && <AdsPanel />}
@@ -199,7 +201,7 @@ function OrderTicket({ o, now, cta, onNext }: { o: Order; now: number; cta?: str
         <span className={`timer ${late ? 'late' : ''}`}><Icon name="clock" size={12} /> {mins}m</span>
       </div>
       <div className="small">
-        <b>{o.fulfilment === 'table' ? seatLabel(o.table) : 'Pickup'}</b> · {o.customer}
+        <b>{o.fulfilment === 'table' ? seatLabel(o.table) : o.fulfilment === 'find' ? '🙋 Find guest' : 'Pickup'}</b> · {o.customer}{o.fulfilment === 'find' && o.locationHint && <div className="tiny note">📍 {o.locationHint}</div>}
       </div>
       <ul className="ticket-lines">
         {o.lines.map((l) => (

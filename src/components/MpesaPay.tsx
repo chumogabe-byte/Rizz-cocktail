@@ -12,7 +12,7 @@ export const isValidKePhone = (p: string) => /^(?:\+?254|0)?[17]\d{8}$/.test(p.r
  * State comes from the live `payment` on the order/ticket, so it updates the moment Safaricom confirms.
  */
 export function MpesaPay({ kind, refId, amount, payment, title = 'Pay with M-Pesa', onPaid }: {
-  kind: 'order' | 'ticket'; refId: string; amount: number; payment?: Payment; title?: string; onPaid?: () => void;
+  kind: 'order' | 'ticket' | 'topup'; refId: string; amount: number; payment?: Payment; title?: string; onPaid?: () => void;
 }) {
   const user = useStore((s) => s.user);
   const mode = useStore((s) => s.mpesa?.mode);
@@ -46,7 +46,7 @@ export function MpesaPay({ kind, refId, amount, payment, title = 'Pay with M-Pes
       <div className="mpesa paid">
         <div className="mpesa-icon">✓</div>
         <div className="row-body">
-          <strong>Paid {payment?.amount ? money(payment.amount) : ''}{payment?.method === 'mpesa' ? ' via M-Pesa' : payment?.method === 'cash' ? ' at the bar' : ''}</strong>
+          <strong>Paid {payment?.amount ? money(payment.amount) : ''}{payment?.method === 'mpesa' ? ' via M-Pesa' : payment?.method === 'wallet' ? ' from Rizz Wallet' : payment?.method === 'cash' ? ' at the bar' : ''}</strong>
           {payment?.receipt && <span className="small">Receipt <b className="code-chip">{payment.receipt}</b></span>}
         </div>
       </div>
@@ -88,7 +88,8 @@ export function MpesaPay({ kind, refId, amount, payment, title = 'Pay with M-Pes
 /** Small status pill for staff screens. */
 export function PayBadge({ payment, total }: { payment?: Payment; total: number }) {
   if (!payment || total <= 0) return null;
-  if (payment.status === 'paid') return <span className="pay-badge paid">{payment.method === 'mpesa' ? `M-Pesa ✓ ${payment.receipt ?? ''}` : payment.method === 'free' ? 'Free' : 'Paid (cash) ✓'}</span>;
+  if (payment.status === 'paid') return <span className="pay-badge paid">{payment.method === 'mpesa' ? `M-Pesa ✓ ${payment.receipt ?? ''}` : payment.method === 'wallet' ? 'Wallet ✓' : payment.method === 'free' ? 'Free' : 'Paid (cash) ✓'}</span>;
+  if (payment.status === 'refunded') return <span className="pay-badge unpaid">Refunded to wallet</span>;
   if (payment.status === 'pending') return <span className="pay-badge pending">⏳ M-Pesa prompt sent</span>;
   if (payment.status === 'failed') return <span className="pay-badge failed">M-Pesa failed</span>;
   return <span className="pay-badge unpaid">{payment.method === 'mpesa' ? 'M-Pesa (not yet paid)' : 'Pay at bar'}</span>;

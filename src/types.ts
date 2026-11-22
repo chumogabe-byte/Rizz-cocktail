@@ -45,7 +45,7 @@ export interface CartLine {
 }
 
 export type OrderStatus = 'new' | 'preparing' | 'ready' | 'served' | 'cancelled';
-export type FulfilmentType = 'table' | 'pickup';
+export type FulfilmentType = 'table' | 'pickup' | 'find';
 
 export interface Order {
   id: string;
@@ -64,6 +64,7 @@ export interface Order {
   total: number;
   fulfilment: FulfilmentType;
   table?: string;
+  locationHint?: string;
   notes?: string;
   status: OrderStatus;
   rating?: number;
@@ -98,8 +99,8 @@ export interface User {
 }
 
 export interface Payment {
-  method: 'mpesa' | 'cash' | 'free' | 'unpaid';
-  status: 'unpaid' | 'pending' | 'paid' | 'failed';
+  method: 'mpesa' | 'cash' | 'free' | 'unpaid' | 'wallet';
+  status: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
   receipt?: string;
   phone?: string;
   amount?: number;
@@ -165,9 +166,10 @@ export interface CustomerStats {
   posts: number;
   redeemed: number;
   tickets?: number;
+  wallet?: number;
 }
 
-export interface Settings { rewardThreshold: number; rewardValue: number; pointsPerUnit: number }
+export interface Settings { rewardThreshold: number; rewardValue: number; pointsPerUnit: number; walletBonusPercent?: number; walletBonusMin?: number }
 
 export interface TicketType { id: string; name: string; price: number; capacity: number }
 export interface BarEvent {
@@ -212,3 +214,17 @@ export interface AppContent {
   home: { headline: string; orderImage: string | null; bookImage: string | null };
 }
 export type StaffRole = 'admin' | 'staff';
+
+export interface WalletTx {
+  id: string;
+  type: 'topup' | 'cash' | 'bonus' | 'payment' | 'refund' | 'adjust';
+  amount: number;
+  ref?: string;
+  note?: string;
+  at: number;
+  balanceAfter: number;
+  name?: string;
+  customerId?: string;
+}
+export interface Topup { id: string; customerId: string; amount: number; createdAt: number; bonus?: number; payment?: Payment }
+export interface Wallet { balance: number; tx: WalletTx[]; topups: Topup[] }

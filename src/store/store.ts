@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppContent, Space, StaffRole, BarEvent, TicketOrder, TicketStatus, MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
+import type { Wallet, Topup, AppContent, Space, StaffRole, BarEvent, TicketOrder, TicketStatus, MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
 import { api, subscribe, type Snapshot } from '../api';
 import seedMenu from '../../server/seed-menu.json';
 import seedSpaces from '../../server/seed-spaces.json';
@@ -28,6 +28,8 @@ export interface State {
   tickets: TicketOrder[];
   mpesa: Snapshot['mpesa'] | null;
   content: AppContent | null;
+  wallet: Wallet | null;
+  walletRev: number; // bumps when any wallet changes (staff screens refetch)
   spaces: Space[];
   staffRole: StaffRole | null;
   online: boolean;
@@ -56,7 +58,7 @@ function load(): State {
     orders: [], bookings: [], posts: [], ads: [], vouchers: [], me: null,
     settings: { rewardThreshold: 100, rewardValue: 1000, pointsPerUnit: 0.01 },
     menu: seedMenu as MenuItem[],
-    events: [], tickets: [], mpesa: null, content: null, spaces: seedSpaces as Space[], staffRole: role,
+    events: [], tickets: [], mpesa: null, wallet: null, walletRev: 0, content: null, spaces: seedSpaces as Space[], staffRole: role,
     online: false, loaded: false,
     staffToken: token,
     toast: null,
@@ -96,6 +98,8 @@ export function connect() {
     me: (me) => set({ me }),
     menu: (menu) => set({ menu }),
     content: (content) => set({ content }),
+    wallet: (wallet) => set({ wallet }),
+    walletChanged: () => set({ walletRev: state.walletRev + 1 }),
     spaces: (spaces) => set({ spaces }),
     events: (events) => set({ events }),
     ticket: (t) => set({ tickets: upsert(state.tickets, t) }),
@@ -160,7 +164,7 @@ export const actions = {
   },
 
   // ---- orders ----
-  async placeOrder(input: Pick<Order, 'fulfilment' | 'table' | 'notes' | 'tip'> & { paymentMethod: 'mpesa' | 'cash' }): Promise<Order> {
+  async placeOrder(input: Pick<Order, 'fulfilment' | 'table' | 'locationHint' | 'notes' | 'tip'> & { paymentMethod: 'mpesa' | 'cash' | 'wallet' }): Promise<Order> {
     const order = await api<Order>('/api/orders', { method: 'POST', body: {
       ...input, lines: state.cart, voucherCode: state.appliedCode || undefined,
       customerId: state.customerId, customer: state.user?.name, phone: state.user?.phone } });
@@ -224,9 +228,27 @@ export const actions = {
     return api<{ updated: number }>('/api/menu/offer', { method: 'POST', ...staff(), body: { category, percent } });
   },
   async deleteMenuItem(id: string) { await api(`/api/menu/${id}`, { method: 'DELETE', ...staff() }); },
+  // ---- Rizz Wallet ----
+  /** Creates a top-up request, then sends the M-Pesa prompt for it. */
+  async topUp(amount: number, phone: string) {
+    const t = await api<Topup>('/api/wallet/topups', { method: 'POST', body: { amount, customerId: state.customerId } });
+    await actions.payMpesa('topup', t.id, phone);
+    return t;
+  },
+  async payWithWallet(kind: 'order' | 'ticket', refId: string) {
+    await api('/api/wallet/pay', { method: 'POST', body: { kind, refId, customerId: state.customerId } });
+  },
+  fetchWallets() {
+    return api<{ rows: { customerId: string; name: string; phone?: string; balance: number; updatedAt: number }[];
+      totals: { balance: number; topups: number; spent: number; bonus: number; refunds: number }; recent: (import('../types').WalletTx)[] }>('/api/wallets', staff());
+  },
+  adjustWallet(customerId: string, amount: number, type: 'cash' | 'adjust', note?: string) {
+    return api(`/api/wallets/${encodeURIComponent(customerId)}/adjust`, { method: 'POST', ...staff(), body: { amount, type, note } });
+  },
+
   // ---- M-Pesa ----
   /** Sends the M-Pesa PIN prompt to `phone` for an order or ticket purchase. */
-  payMpesa(kind: 'order' | 'ticket', refId: string, phone: string) {
+  payMpesa(kind: 'order' | 'ticket' | 'topup', refId: string, phone: string) {
     return api<{ paymentId: string; amount: number; message: string; mode: string }>('/api/payments/mpesa', { method: 'POST',
       ...staff(), body: { kind, refId, phone, customerId: state.customerId } });
   },
@@ -239,9 +261,9 @@ export const actions = {
   },
 
   // ---- events & tickets ----
-  async buyTickets(eventId: string, items: { typeId: string; qty: number }[]) {
+  async buyTickets(eventId: string, items: { typeId: string; qty: number }[], payWith?: 'wallet') {
     const t = await api<TicketOrder>(`/api/events/${eventId}/tickets`, { method: 'POST',
-      body: { items, customerId: state.customerId, customer: state.user?.name, phone: state.user?.phone } });
+      body: { items, payWith, customerId: state.customerId, customer: state.user?.name, phone: state.user?.phone } });
     set({ tickets: upsert(state.tickets, t) });
     return t;
   },

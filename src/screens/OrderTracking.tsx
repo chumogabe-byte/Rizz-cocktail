@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon';
 import { Chip, TopBar } from '../components/Layout';
 import { money, seatLabel } from '../config';
 import { MpesaPay } from '../components/MpesaPay';
+import { PayFromWallet } from './Wallet';
 
 const STEPS: { s: OrderStatus; label: string; emoji: string }[] = [
   { s: 'new', label: 'Received', emoji: '🧾' },
@@ -41,7 +42,7 @@ export function OrderTracking({ nav, id }: { nav: Nav; id: string }) {
         <div className="track-emoji">{cancelled ? '❌' : STEPS[idx]?.emoji}</div>
         <h2>{cancelled ? 'Order cancelled' : order.status === 'ready' ? (order.fulfilment === 'pickup' ? 'Ready at the bar!' : 'On its way to you!') : order.status === 'served' ? 'Enjoy! Cheers 🥂' : order.status === 'preparing' ? 'Our bartenders are on it' : 'Order sent to the bar'}</h2>
         <p className="muted small">
-          {order.fulfilment === 'table' ? <>{seatLabel(order.table)}</> : <>Pickup at the bar · show code <strong>{order.code}</strong></>}
+          {order.fulfilment === 'table' ? <>{seatLabel(order.table)}</> : order.fulfilment === 'find' ? <>🙋 We'll find you{order.locationHint ? ` · ${order.locationHint}` : ''} — show code <strong>{order.code}</strong></> : <>Pickup at the bar · show code <strong>{order.code}</strong></>}
         </p>
         {!cancelled && (
           <div className="steps">
@@ -71,6 +72,10 @@ export function OrderTracking({ nav, id }: { nav: Nav; id: string }) {
         </div>
       </div>
 
+      {order.status !== 'cancelled' && order.payment && !['paid', 'pending', 'refunded'].includes(order.payment.status) && (
+        <PayFromWallet kind="order" refId={order.id} amount={order.total} onTopUp={() => nav.go({ name: 'wallet' })} />
+      )}
+      {order.payment?.status === 'refunded' && <div className="wallet-pay ok"><div className="row-body"><strong>↩️ Refunded to your Rizz Wallet</strong><span className="tiny">{money(order.payment.amount ?? order.total)} is back in your balance.</span></div></div>}
       {order.status !== 'cancelled' && order.payment && (order.payment.method === 'mpesa' || order.payment.status === 'paid'
         ? <MpesaPay kind="order" refId={order.id} amount={order.total} payment={order.payment} title="Pay for this order" />
         : (

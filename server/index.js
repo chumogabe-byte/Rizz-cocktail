@@ -27,7 +27,9 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // ---------- persistence ----------
 // Prices are in Kenyan shillings (M-Pesa). 1 point per KSh 100 spent; 100 points → KSh 1,000 reward code.
-const DEFAULT_SETTINGS = { rewardThreshold: 100, rewardValue: 1000, pointsPerUnit: 0.01 };
+const DEFAULT_SETTINGS = { rewardThreshold: 100, rewardValue: 1000, pointsPerUnit: 0.01,
+  // Rizz Wallet: bonus % credited on top-ups of at least walletBonusMin (0 = no bonus)
+  walletBonusPercent: 0, walletBonusMin: 2000 };
 const now0 = Date.now();
 const DEFAULT_ADS = [
   { id: 'ad-happy', title: 'Happy Hour 2-for-1', subtitle: 'All classic cocktails, 4–7 PM daily', emoji: '🍸', theme: 'purple',
@@ -80,7 +82,7 @@ const DEFAULT_CONTENT = {
 
 const SEED_MENU = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed-menu.json'), 'utf8'));
 
-let db = { content: DEFAULT_CONTENT, spaces: SEED_SPACES, payments: [], events: DEFAULT_EVENTS, tickets: [], menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
+let db = { wallets: {}, walletTx: [], topups: [], content: DEFAULT_CONTENT, spaces: SEED_SPACES, payments: [], events: DEFAULT_EVENTS, tickets: [], menu: SEED_MENU, orders: [], bookings: [], posts: [], ads: DEFAULT_ADS, vouchers: DEFAULT_VOUCHERS, customers: {}, settings: DEFAULT_SETTINGS };
 try {
   db = { ...db, ...JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) };
   db.settings = { ...DEFAULT_SETTINGS, ...db.settings };
@@ -147,6 +149,47 @@ const ORDER_STATUSES = ['new', 'preparing', 'ready', 'served', 'cancelled'];
 const BOOKING_STATUSES = ['pending', 'confirmed', 'declined', 'checked-in', 'cancelled'];
 const ACTIVE_BOOKING = ['pending', 'confirmed', 'checked-in'];
 
+// ---------- Rizz Wallet ----------
+const walletOf = (customerId) => (db.wallets[customerId] ||= { balance: 0, updatedAt: Date.now() });
+function walletView(customerId) {
+  const w = db.wallets[customerId] || { balance: 0 };
+  return { balance: w.balance, tx: db.walletTx.filter((t) => t.customerId === customerId).slice(0, 40),
+    topups: db.topups.filter((t) => t.customerId === customerId).slice(0, 5) };
+}
+/** Move money in/out of a wallet and record it. amount > 0 credits, < 0 debits. Returns the tx or null if insufficient. */
+function walletTx(customerId, amount, type, { ref, note, by } = {}) {
+  const w = walletOf(customerId);
+  amount = Math.round(amount);
+  if (amount < 0 && w.balance + amount < 0) return null;
+  w.balance += amount; w.updatedAt = Date.now();
+  const tx = { id: uid(), customerId, type, amount, ref, note, by, at: Date.now(), balanceAfter: w.balance };
+  db.walletTx.unshift(tx);
+  return tx;
+}
+function pushWallet(customerId) {
+  for (const c of clients) if (c.customerId === customerId) send(c, 'wallet', walletView(customerId));
+  for (const c of clients) if (c.staff) send(c, 'walletChanged', { customerId });
+}
+/** Refund a wallet-paid order/ticket back to the wallet (on cancel). */
+function refundToWallet(r, label) {
+  if (r.payment?.method !== 'wallet' || r.payment.status !== 'paid' || !r.customerId) return false;
+  walletTx(r.customerId, r.payment.amount, 'refund', { ref: r.code, note: `Refund — ${label} cancelled` });
+  r.payment = { ...r.payment, status: 'refunded' };
+  pushWallet(r.customerId);
+  return true;
+}
+/** Pay an order/ticket from the wallet. Returns an error string or null. */
+function payFromWallet(r, label) {
+  if (!r.customerId) return 'Sign in to use your wallet.';
+  const amount = Math.ceil(r.total);
+  if (amount <= 0) return 'Nothing to pay.';
+  const tx = walletTx(r.customerId, -amount, 'payment', { ref: r.code, note: label });
+  if (!tx) return `Not enough in your Rizz Wallet (balance KSh ${walletOf(r.customerId).balance.toLocaleString('en-KE')}, need KSh ${amount.toLocaleString('en-KE')}). Top up or choose another payment method.`;
+  r.payment = { method: 'wallet', status: 'paid', amount, paidAt: Date.now(), txId: tx.id };
+  pushWallet(r.customerId);
+  return null;
+}
+
 // ---------- customers, points & rewards ----------
 function customerStats(customerId) {
   const mine = db.orders.filter((o) => o.customerId === customerId);
@@ -158,6 +201,7 @@ function customerStats(customerId) {
   const profile = db.customers[customerId] || {};
   return { customerId, name: profile.name || mine[0]?.customer || 'Guest', phone: profile.phone || mine[0]?.phone,
     tickets: db.tickets.filter((t) => t.customerId === customerId && t.status !== 'cancelled').reduce((n, t) => n + t.units.length, 0),
+    wallet: db.wallets[customerId]?.balance ?? 0,
     orders: served.length, totalOrders: mine.filter((o) => o.status !== 'cancelled').length, spent, points,
     lastVisit: last || null, posts: db.posts.filter((p) => p.customerId === customerId && !p.hidden).length,
     redeemed: db.vouchers.reduce((n, v) => n + v.redemptions.filter((r) => r.customerId === customerId).length, 0) };
@@ -218,6 +262,7 @@ function viewFor(c) {
     me: c.customerId ? customerStats(c.customerId) : null,
     settings: db.settings,
     role: c.role || null,
+    wallet: c.customerId ? walletView(c.customerId) : null,
     content: db.content,
     spaces: c.staff ? db.spaces : db.spaces.filter((x) => x.active !== false),
     mpesa: mpesaInfo(),
@@ -342,7 +387,9 @@ app.patch('/api/settings', requireAdmin, (req, res) => {
   const b = req.body || {};
   db.settings = { ...db.settings,
     rewardThreshold: num(b.rewardThreshold, 0, 1e6, db.settings.rewardThreshold),
-    rewardValue: num(b.rewardValue, 0, 1e6, db.settings.rewardValue) };
+    rewardValue: num(b.rewardValue, 0, 1e6, db.settings.rewardValue),
+    walletBonusPercent: b.walletBonusPercent !== undefined ? num(b.walletBonusPercent, 0, 50, 0) : db.settings.walletBonusPercent,
+    walletBonusMin: b.walletBonusMin !== undefined ? num(b.walletBonusMin, 0, 1e6, 0) : db.settings.walletBonusMin };
   save(); pushSnapshotAll();
   res.json(db.settings);
 });
@@ -370,9 +417,11 @@ app.post('/api/orders', (req, res) => {
     l.name = item.name;
     l.unitPrice = priceFor(item, l.choices);
   }
-  const fulfilment = b.fulfilment === 'pickup' ? 'pickup' : 'table';
+  // table = bring to my seat (seat required) · pickup = collect at the bar · find = no seat, staff find the guest by name
+  const fulfilment = ['pickup', 'find'].includes(b.fulfilment) ? b.fulfilment : 'table';
   const table = fulfilment === 'table' ? str(b.table, 20) : undefined;
   if (fulfilment === 'table' && !table) return res.status(400).json({ error: 'Table number required' });
+  const locationHint = fulfilment === 'find' ? str(b.locationHint, 80) : undefined;
   const customerId = str(b.customerId, 64);
 
   const subtotal = round(clean.reduce((s, l) => s + l.unitPrice * l.qty, 0));
@@ -392,8 +441,12 @@ app.post('/api/orders', (req, res) => {
   const order = { id: uid(), code: code('RZ'), createdAt: now, updatedAt: now, source: 'app',
     customerId, customer: str(b.customer, 60) || 'Guest', phone: str(b.phone, 30),
     lines: clean, subtotal, discount, voucherCode: voucher?.code, serviceFee, tip, total: round(net + serviceFee + tip),
-    fulfilment, table, notes: str(b.notes, 300), status: 'new',
+    fulfilment, table, locationHint, notes: str(b.notes, 300), status: 'new',
     payment: { method: b.paymentMethod === 'mpesa' ? 'mpesa' : 'cash', status: 'unpaid' } };
+  if (b.paymentMethod === 'wallet') {
+    const err = payFromWallet(order, 'Bar order');
+    if (err) return res.status(402).json({ error: err });
+  }
   if (voucher) voucher.redemptions.push({ customerId, orderId: order.id, at: now });
   db.orders.unshift(order);
   save();
@@ -413,6 +466,7 @@ app.patch('/api/orders/:id', (req, res) => {
     if (!staff && !(owner && status === 'cancelled' && o.status === 'new')) return res.status(403).json({ error: 'Not allowed' });
     if (!staff && ['paid', 'pending'].includes(o.payment?.status)) return res.status(400).json({ error: 'This order is paid (or payment is in progress) — please ask a member of staff to cancel it.' });
     // A cancelled order gives its voucher back
+    if (status === 'cancelled' && o.status !== 'cancelled') refundToWallet(o, `order ${o.code}`);
     if (status === 'cancelled' && o.voucherCode) {
       const v = findVoucher(o.voucherCode);
       if (v) { v.redemptions = v.redemptions.filter((r) => r.orderId !== o.id); pushVouchers(v.customerId || o.customerId); }
@@ -598,7 +652,13 @@ app.post('/api/events/:id/tickets', (req, res) => {
     location: ev.location, customerId, customer, phone, lines, total, units,
     status: total === 0 ? 'paid' : 'reserved', // free RSVPs need no payment
     payment: { method: total === 0 ? 'free' : 'unpaid', status: total === 0 ? 'paid' : 'unpaid' } };
+  if (total > 0 && b.payWith === 'wallet') {
+    const err = payFromWallet(t, `Tickets — ${ev.title}`);
+    if (err) return res.status(402).json({ error: err });
+    t.status = 'paid';
+  }
   db.tickets.unshift(t);
+  if (t.payment.method === 'wallet' && issueRewards(customerId)) pushVouchers(customerId);
   save(); pushTicket(t);
   res.status(201).json(t);
 });
@@ -611,6 +671,7 @@ app.patch('/api/tickets/:id', (req, res) => {
   const owner = customerId && customerId === t.customerId;
   if (!isStaff(req) && !(owner && status === 'cancelled' && t.status === 'reserved')) return res.status(403).json({ error: 'Not allowed' });
   if (!isStaff(req) && t.payment?.status === 'pending') return res.status(400).json({ error: 'Payment is in progress — wait for it to finish.' });
+  if (status === 'cancelled' && t.status !== 'cancelled') refundToWallet(t, `tickets ${t.code}`);
   if ((status === 'paid' || status === 'checked-in') && t.payment?.status !== 'paid' && t.total > 0)
     t.payment = { method: 'cash', status: 'paid', amount: Math.ceil(t.total), paidAt: Date.now() };
   t.status = status;
@@ -648,6 +709,11 @@ function payableRef(kind, refId) {
     return t && { ref: t, amount: Math.ceil(t.total), reference: t.code, description: 'Rizz tickets', customerId: t.customerId,
       blocked: t.status === 'cancelled' ? 'These tickets were cancelled.' : t.payment?.status === 'paid' ? 'Already paid.' : t.total <= 0 ? 'Nothing to pay.' : null };
   }
+  if (kind === 'topup') {
+    const t = db.topups.find((x) => x.id === refId);
+    return t && { ref: t, amount: t.amount, reference: 'WALLET', description: 'Rizz Wallet', customerId: t.customerId,
+      blocked: t.payment?.status === 'paid' ? 'Already credited.' : null };
+  }
   return null;
 }
 
@@ -664,7 +730,17 @@ function applyPaymentResult(result) {
     r.payment = ok
       ? { method: 'mpesa', status: 'paid', receipt: result.receipt, phone: p.phone, amount: p.amount, paidAt: Date.now(), paymentId: p.id }
       : { method: 'mpesa', status: 'failed', phone: p.phone, amount: p.amount, message: friendlyResult(result.resultCode, result.resultDesc), paymentId: p.id };
-    if (p.kind === 'ticket') {
+    if (p.kind === 'topup') {
+      if (ok) {
+        walletTx(r.customerId, r.amount, 'topup', { ref: result.receipt, note: 'M-Pesa top-up' });
+        const { walletBonusPercent: pct, walletBonusMin: min } = db.settings;
+        if (pct > 0 && r.amount >= min) {
+          r.bonus = Math.round(r.amount * pct / 100);
+          walletTx(r.customerId, r.bonus, 'bonus', { ref: result.receipt, note: `${pct}% top-up bonus` });
+        }
+      }
+      pushWallet(r.customerId);
+    } else if (p.kind === 'ticket') {
       if (ok && r.status === 'reserved') r.status = 'paid';
       const rewarded = ok && issueRewards(r.customerId);
       pushTicket(r);
@@ -694,7 +770,7 @@ app.post('/api/payments/mpesa', async (req, res) => {
     db.payments.unshift(p);
     target.ref.payment = { method: 'mpesa', status: 'pending', phone, amount: target.amount, paymentId: p.id };
     save();
-    kind === 'ticket' ? pushTicket(target.ref) : pushOrder(target.ref);
+    kind === 'ticket' ? pushTicket(target.ref) : kind === 'topup' ? pushWallet(target.customerId) : pushOrder(target.ref);
     res.json({ paymentId: p.id, amount: p.amount, message: r.message, mode: mpesaInfo().mode });
   } catch (e) {
     res.status(502).json({ error: e.message || 'M-Pesa is unavailable right now. Try again or pay at the bar.' });
@@ -724,6 +800,78 @@ app.post('/api/payments/:id/status', async (req, res) => {
 });
 
 app.get('/api/payments', requireStaff, (_req, res) => res.json(db.payments.slice(0, 200)));
+
+// ---------- wallet endpoints ----------
+app.get('/api/wallet', (req, res) => {
+  const id = str(req.query.customerId, 64);
+  if (!id) return res.status(400).json({ error: 'customerId required' });
+  res.json(walletView(id));
+});
+
+// Start a top-up: creates the request; the client then calls /api/payments/mpesa with kind "topup"
+app.post('/api/wallet/topups', (req, res) => {
+  const customerId = str(req.body?.customerId, 64);
+  const amount = Math.round(num(req.body?.amount, 0, 1e7, 0));
+  if (!customerId) return res.status(400).json({ error: 'Sign in first' });
+  if (amount < 50) return res.status(400).json({ error: 'Minimum top-up is 50.' });
+  if (amount > 150000) return res.status(400).json({ error: 'Maximum top-up is 150,000 per transaction.' });
+  const t = { id: uid(), customerId, amount, createdAt: Date.now(), payment: { method: 'mpesa', status: 'unpaid' } };
+  db.topups.unshift(t);
+  save();
+  res.status(201).json(t);
+});
+
+// Pay an existing (unpaid) order or ticket purchase from the wallet
+app.post('/api/wallet/pay', (req, res) => {
+  const { kind, refId, customerId } = req.body || {};
+  const target = kind === 'order' || kind === 'ticket' ? payableRef(kind, refId) : null;
+  if (!target) return res.status(404).json({ error: 'Nothing to pay for.' });
+  if (!customerId || customerId !== target.customerId) return res.status(403).json({ error: 'Not allowed' });
+  if (target.blocked) return res.status(400).json({ error: target.blocked });
+  if (target.ref.payment?.status === 'pending') return res.status(400).json({ error: 'An M-Pesa payment is in progress for this.' });
+  const err = payFromWallet(target.ref, kind === 'ticket' ? `Tickets — ${target.ref.eventTitle}` : 'Bar order');
+  if (err) return res.status(402).json({ error: err });
+  if (kind === 'ticket') {
+    if (target.ref.status === 'reserved') target.ref.status = 'paid';
+    if (issueRewards(target.ref.customerId)) pushVouchers(target.ref.customerId);
+    pushTicket(target.ref);
+  } else pushOrder(target.ref);
+  save();
+  res.json(target.ref);
+});
+
+// Staff: wallets overview; cash top-ups (staff) and adjustments (admin)
+app.get('/api/wallets', requireStaff, (_req, res) => {
+  // every known guest (so staff can find someone for a first cash top-up), richest wallets first
+  const ids = new Set([...Object.keys(db.wallets), ...Object.keys(db.customers)]);
+  const rows = [...ids].map((customerId) => {
+    const st = customerStats(customerId);
+    const w = db.wallets[customerId];
+    return { customerId, name: st.name, phone: st.phone, balance: w?.balance ?? 0, updatedAt: w?.updatedAt ?? null };
+  }).sort((a, b) => b.balance - a.balance || String(a.name).localeCompare(b.name));
+  const sum = (type) => db.walletTx.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
+  res.json({ rows, totals: { balance: rows.reduce((s, r) => s + r.balance, 0), topups: sum('topup') + sum('cash'), spent: -sum('payment') - sum('refund'), bonus: sum('bonus'), refunds: sum('refund') },
+    recent: db.walletTx.slice(0, 50).map((t) => ({ ...t, name: customerStats(t.customerId).name })) });
+});
+app.post('/api/wallets/:customerId/adjust', requireStaff, (req, res) => {
+  const customerId = req.params.customerId;
+  const amount = Math.round(num(req.body?.amount, -1e7, 1e7, 0));
+  const note = str(req.body?.note, 120);
+  const cash = req.body?.type === 'cash';
+  if (!amount) return res.status(400).json({ error: 'Enter an amount' });
+  if (!cash && !isAdmin(req)) return res.status(403).json({ error: 'Only an admin can make adjustments. Staff can record cash top-ups.' });
+  if (cash && amount < 0) return res.status(400).json({ error: 'Cash top-ups must be positive.' });
+  if (!db.customers[customerId] && !db.orders.some((o) => o.customerId === customerId) && !db.wallets[customerId])
+    return res.status(404).json({ error: 'Unknown guest' });
+  const tx = walletTx(customerId, amount, cash ? 'cash' : 'adjust', { note: note || (cash ? 'Cash top-up at the bar' : 'Adjustment'), by: tokens.get(tokenOf(req)) });
+  if (!tx) return res.status(400).json({ error: 'That would make the balance negative.' });
+  if (cash) {
+    const { walletBonusPercent: pct, walletBonusMin: min } = db.settings;
+    if (pct > 0 && amount >= min) walletTx(customerId, Math.round(amount * pct / 100), 'bonus', { note: `${pct}% top-up bonus` });
+  }
+  save(); pushWallet(customerId);
+  res.json(walletView(customerId));
+});
 
 // ---------- app content & spaces (admin) ----------
 function pushContent() { for (const c of clients) send(c, 'content', db.content); }

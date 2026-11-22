@@ -5,6 +5,7 @@ import { ItemArt, Price } from '../components/ItemBits';
 import { AdBanner, HeroSlider } from '../components/Promo';
 import { mediaUrl } from '../api';
 import { CountUp } from '../components/CountUp';
+import { WalletPill } from './Wallet';
 import { confetti } from '../fx';
 import { eventBg, fmtDay, priceFrom, upcoming } from './Events';
 import { actions, cartCount, useStore } from '../store/store';
@@ -39,7 +40,7 @@ export function Home({ nav }: { nav: Nav }) {
     <div className="screen">
       <div className="home-head">
         <div>
-          <p className="muted small">Hey {user?.name.split(' ')[0]} 👋</p>
+          <div className="row-gap"><p className="muted small">Hey {user?.name.split(' ')[0]} 👋</p><WalletPill onClick={() => nav.go({ name: 'wallet' })} /></div>
           <h1 className="display">{accentHeadline(home?.headline || "What's your vibe tonight?")}</h1>
         </div>
         <div className="row-gap">

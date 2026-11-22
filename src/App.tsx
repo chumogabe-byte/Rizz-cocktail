@@ -19,6 +19,7 @@ import { TV } from './screens/TV';
 import { Events } from './screens/Events';
 import { EventDetail } from './screens/EventDetail';
 import { MyTickets } from './screens/MyTickets';
+import { Wallet } from './screens/Wallet';
 
 const TABS: { route: Route; icon: string; label: string }[] = [
   { route: { name: 'home' }, icon: 'home', label: 'Home' },
@@ -92,6 +93,7 @@ export default function App() {
         {route.name === 'events' && <Events nav={nav} />}
         {route.name === 'event' && <EventDetail key={route.id} nav={nav} id={route.id} />}
         {route.name === 'tickets' && <MyTickets nav={nav} />}
+        {route.name === 'wallet' && <Wallet nav={nav} />}
         </div>
       </main>
       {showNav && (
