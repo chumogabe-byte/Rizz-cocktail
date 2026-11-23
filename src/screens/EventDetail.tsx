@@ -4,12 +4,13 @@ import { actions, useStore } from '../store/store';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Layout';
 import { money } from '../config';
-import { eventBg, fmtWhen } from './Events';
+import { eventBg, fmtWhen, rollWeekly } from './Events';
 import { isValidKePhone } from '../components/MpesaPay';
 import { confetti } from '../fx';
 
 export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
-  const e = useStore((s) => s.events.find((x) => x.id === id));
+  const raw = useStore((s) => s.events.find((x) => x.id === id));
+  const e = raw && rollWeekly(raw);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -49,11 +50,11 @@ export function EventDetail({ nav, id }: { nav: Nav; id: string }) {
       </div>
       <div className="detail-body">
         {e.featured && <span className="tag tag-lime">★ Featured event</span>}
-        {e.repeat === 'weekly' && <span className="tag tag-purple">↻ Every {new Date(e.startsAt).toLocaleDateString(undefined, { weekday: 'long' })} — tickets are for the next one</span>}
+        {e.repeat === 'weekly' && <span className="tag tag-purple">↻ Every {new Date(e.startsAt).toLocaleDateString('en-GB', { timeZone: 'Africa/Nairobi', weekday: 'long' })} — tickets are for the next one</span>}
         <h1 className="display-sm">{e.title}</h1>
         {e.subtitle && <p className="muted">{e.subtitle}</p>}
         <div className="info-card">
-          <div><Icon name="calendar" size={16} /> {fmtWhen(e.startsAt)}{e.endsAt ? ` – ${new Date(e.endsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}</div>
+          <div><Icon name="calendar" size={16} /> {fmtWhen(e.startsAt)}{e.endsAt ? ` – ${new Date(e.endsAt).toLocaleTimeString('en-GB', { timeZone: 'Africa/Nairobi', hour: 'numeric', minute: '2-digit', hour12: true })}` : ''}</div>
           <div><Icon name="pin" size={16} /> {e.location || 'Rizz Bar'}</div>
         </div>
         <p className="muted">{e.description}</p>

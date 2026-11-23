@@ -9,10 +9,10 @@ import { Icon } from '../components/Icon';
 import { money } from '../config';
 
 export const fmtWhen = (t: number) =>
-  new Date(t).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  new Date(t).toLocaleString('en-GB', { timeZone: 'Africa/Nairobi', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
 export const fmtDay = (t: number) => {
   const d = new Date(t);
-  return { dow: d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase(), day: d.getDate() };
+  return { dow: d.toLocaleDateString('en-GB', { timeZone: 'Africa/Nairobi', weekday: 'short' }).toUpperCase(), day: Number(d.toLocaleDateString('en-GB', { timeZone: 'Africa/Nairobi', day: 'numeric' })) };
 };
 export function priceFrom(e: BarEvent) {
   const avail = e.ticketTypes.filter((t) => (e.sold[t.id] || 0) < t.capacity);
@@ -26,8 +26,16 @@ export const eventBg = (e: { theme: string; image?: string }, overlay = true) =>
     ? `${overlay ? 'linear-gradient(180deg, rgba(10,8,20,0) 35%, rgba(10,8,20,.9) 100%), ' : ''}center/cover url("${mediaUrl(e.image)}")`
     : `radial-gradient(120% 120% at 30% 15%, ${a} 0%, ${b} 70%, #0b0816 100%)`;
 };
+/** Weekly events roll forward to their next date (mirrors the server, so built-in data stays current offline too). */
+export function rollWeekly(e: BarEvent): BarEvent {
+  if (e.repeat !== 'weekly') return e;
+  const len = (e.endsAt || e.startsAt + 3 * 3600e3) - e.startsAt;
+  let start = e.startsAt;
+  while (start + len < Date.now()) start += 7 * 864e5;
+  return start === e.startsAt ? e : { ...e, startsAt: start, endsAt: start + len, sold: {} };
+}
 export const upcoming = (events: BarEvent[]) =>
-  events.filter((e) => (e.endsAt || e.startsAt) > Date.now()).sort((a, b) => a.startsAt - b.startsAt);
+  events.map(rollWeekly).filter((e) => (e.endsAt || e.startsAt) > Date.now()).sort((a, b) => a.startsAt - b.startsAt);
 
 export function Events({ nav }: { nav: Nav }) {
   const events = upcoming(useStore((s) => s.events));
@@ -73,8 +81,8 @@ export function Events({ nav }: { nav: Nav }) {
             {!t.e.image && <span className="tile-emoji">{t.e.emoji}</span>}
             <span className="tile-date"><small>{fmtDay(t.e.startsAt).dow}</small><b>{fmtDay(t.e.startsAt).day}</b></span>
             <span className={`tile-price ${priceFrom(t.e) === 'Sold out' ? 'out' : ''}`}>{priceFrom(t.e)}</span>
-            {t.e.repeat === 'weekly' && <span className="tile-repeat">↻ Every {new Date(t.e.startsAt).toLocaleDateString(undefined, { weekday: 'long' })}</span>}
-            <span className="tile-copy"><strong>{t.e.title}</strong><small>{new Date(t.e.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {t.e.location}</small></span>
+            {t.e.repeat === 'weekly' && <span className="tile-repeat">↻ Every {new Date(t.e.startsAt).toLocaleDateString('en-GB', { timeZone: 'Africa/Nairobi', weekday: 'long' })}</span>}
+            <span className="tile-copy"><strong>{t.e.title}</strong><small>{new Date(t.e.startsAt).toLocaleTimeString('en-GB', { timeZone: 'Africa/Nairobi', hour: 'numeric', minute: '2-digit', hour12: true })} · {t.e.location}</small></span>
           </button>
         ) : (
           <button key={t.a.id} className={`tile tile-offer ${!t.a.image && darkText(t.a.theme) ? 'ink' : ''}`} style={{ background: eventBg(t.a) }} onClick={() => act(t.a)}>

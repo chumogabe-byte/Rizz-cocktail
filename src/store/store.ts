@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from 'react';
 import type { HappyHour, HappyHourNow, Wallet, Topup, AppContent, Space, StaffRole, BarEvent, TicketOrder, TicketStatus, MenuItem, Ad, Booking, BookingStatus, CartLine, CustomerStats, Order, OrderStatus, Post, Settings, User, Voucher } from '../types';
 import { api, subscribe, type Snapshot } from '../api';
-import seedMenu from '../../server/seed-menu.json';
-import seedSpaces from '../../server/seed-spaces.json';
+// Built-in copy of the bar's content (menu, offers, events…) so the app is complete before/without a server.
+// Regenerated from the server's own data on every build (scripts/make-offline-seed.mjs).
+import offline from '../data/offline-seed.json';
 
 /**
  * App state.
@@ -58,10 +59,10 @@ function load(): State {
     cart: saved.cart ?? [],
     favorites: saved.favorites ?? [],
     appliedCode: saved.appliedCode ?? null,
-    orders: [], bookings: [], posts: [], ads: [], vouchers: [], me: null,
-    settings: { rewardThreshold: 100, rewardValue: 1000, pointsPerUnit: 0.01 },
-    menu: seedMenu as MenuItem[],
-    events: [], tickets: [], mpesa: null, wallet: null, happyHours: [], walletRev: 0, appMode: initialMode(), content: null, spaces: seedSpaces as Space[], staffRole: role,
+    orders: [], bookings: [], posts: [], ads: offline.ads as Ad[], vouchers: [], me: null,
+    settings: { rewardThreshold: 100, rewardValue: 1000, pointsPerUnit: 0.01, ...(offline.settings as Partial<Settings>) },
+    menu: offline.menu as MenuItem[],
+    events: offline.events as BarEvent[], tickets: [], mpesa: null, wallet: null, happyHours: offline.happyHours as HappyHourNow[], walletRev: 0, appMode: initialMode(), content: offline.content as AppContent, spaces: offline.spaces as Space[], staffRole: role,
     online: false, loaded: false,
     staffToken: token,
     toast: null,

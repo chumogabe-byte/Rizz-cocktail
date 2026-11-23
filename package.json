@@ -7,10 +7,11 @@
     "dev": "vite",
     "server": "node server/index.js",
     "dev:server": "node --watch server/index.js",
-    "build": "tsc && vite build",
+    "build": "npm run seed:offline && tsc && vite build",
     "start": "npm run build && node server/index.js",
     "preview": "vite preview",
-    "build:admin": "tsc && VITE_APP=admin vite build --outDir dist-admin"
+    "build:admin": "npm run seed:offline && tsc && VITE_APP=admin vite build --outDir dist-admin",
+    "seed:offline": "node scripts/make-offline-seed.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.3",

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { initFx } from './fx';
 import type { Nav, Route } from './router';
 import { actions, connect, useStore } from './store/store';
+import { Capacitor } from '@capacitor/core';
+import { getServerUrl } from './api';
 import { Icon } from './components/Icon';
 import { Welcome } from './screens/Welcome';
 import { Home } from './screens/Home';
@@ -78,7 +80,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {!online && <OfflineBar loaded={loaded} />}
+      {!online && <OfflineBar loaded={loaded} onSetup={() => go({ name: 'profile' })} />}
       {toast && <div className="toast">{toast}</div>}
       <LiveAlerts />
       {previewPill}
@@ -116,6 +118,10 @@ export default function App() {
   );
 }
 
-function OfflineBar({ loaded }: { loaded: boolean }) {
+function OfflineBar({ loaded, onSetup }: { loaded: boolean; onSetup?: () => void }) {
+  // Installed app with no server address yet: everything is browsable from the built-in copy
+  if (!getServerUrl() && Capacitor.isNativePlatform()) {
+    return <button className="offline-bar" onClick={onSetup}>Browsing offline · tap to add the bar's server so you can order</button>;
+  }
   return <div className="offline-bar">{loaded ? 'Reconnecting to the bar…' : 'Connecting to the bar…'}</div>;
 }

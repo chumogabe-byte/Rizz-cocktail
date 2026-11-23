@@ -35,7 +35,7 @@ export function TV() {
     <div className="tv">
       <header className="tv-head">
         <div className="brand-mark">RIZZ<span>.</span> <small>{bar.tagline}</small></div>
-        <div className="tv-clock">{clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}{!online && ' · offline'}</div>
+        <div className="tv-clock">{clock.toLocaleTimeString('en-GB', { timeZone: 'Africa/Nairobi', hour: 'numeric', minute: '2-digit', hour12: true })}{!online && ' · offline'}</div>
       </header>
 
       <main className="tv-main">

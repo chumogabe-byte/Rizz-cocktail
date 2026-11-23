@@ -23,6 +23,9 @@ export function setServerUrl(url: string) {
 export class ApiError extends Error {}
 
 export async function api<T>(path: string, opts: { method?: string; body?: unknown; token?: string | null } = {}): Promise<T> {
+  // Installed app that was never given the bar's server address: say so plainly
+  if (!getServerUrl() && typeof window !== 'undefined' && (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.())
+    throw new ApiError("This app isn't connected to the bar yet. Add the server address in Profile → Server to order and pay.");
   let res: Response;
   try {
     res = await fetch(getServerUrl() + path, {
@@ -34,7 +37,8 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
     throw new ApiError("Can't reach the bar's server. Check your connection and try again.");
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError((data as { error?: string }).error || `Request failed (${res.status})`);
+  if (!res.ok) throw new ApiError((data as { error?: string }).error
+    || (res.status >= 500 || res.status === 404 ? "Can't reach the bar's server right now. Check your connection and try again." : `Request failed (${res.status})`));
   return data as T;
 }
 
