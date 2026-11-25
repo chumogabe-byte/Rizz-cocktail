@@ -818,3 +818,5 @@ main.has-nav .sticky-cta { bottom: calc(var(--nav-h) + 12px + env(safe-area-inse
 .admin-login { padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
 .sheet { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
 .welcome-body { padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
+.install-hint { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r); background: var(--purple-soft); border: 1px solid rgba(124,92,255,.4); }
+.install-icon { font-size: 26px; }

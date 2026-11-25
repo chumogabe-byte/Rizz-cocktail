@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Capacitor } from '@capacitor/core';
 import { actions, connect, useStore } from '../store/store';
-import { getServerUrl, mediaUrl, setServerUrl } from '../api';
+import { getServerUrl, isDetachedClient, mediaUrl, setServerUrl } from '../api';
 import { useBar } from '../config';
 
 export function Welcome() {
@@ -9,7 +8,7 @@ export function Welcome() {
   const [phone, setPhone] = useState('');
   const [step, setStep] = useState<'splash' | 'form'>('splash');
   // The installed phone app needs to know where the bar's server is (the web app is served by it, so it already knows).
-  const needsServer = Capacitor.isNativePlatform() && !getServerUrl();
+  const needsServer = isDetachedClient() && !getServerUrl();
   const [server, setServer] = useState('');
   const bar = useBar();
   const welcome = useStore((s) => s.content?.welcome);

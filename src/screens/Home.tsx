@@ -6,6 +6,7 @@ import { AdBanner, HeroSlider } from '../components/Promo';
 import { mediaUrl } from '../api';
 import { CountUp } from '../components/CountUp';
 import { WalletPill } from './Wallet';
+import { InstallHint } from '../components/InstallHint';
 import { confetti } from '../fx';
 import { eventBg, fmtDay, priceFrom, upcoming } from './Events';
 import { actions, cartCount, useStore } from '../store/store';
@@ -87,6 +88,8 @@ export function Home({ nav }: { nav: Nav }) {
               <span className="hh-go">Order →</span>
             </button>
           )}
+
+          <InstallHint />
 
           <HeroSlider placement="home" nav={nav} />
 

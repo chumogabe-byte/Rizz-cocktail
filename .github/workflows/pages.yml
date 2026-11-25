@@ -1,0 +1,52 @@
+name: Publish web app (iPhone & browser)
+
+# Publishes the Rizz web app to GitHub Pages. On an iPhone, open the link in Safari and tap
+# Share → Add to Home Screen to install it like an app. It shows the full menu, offers and events
+# straight away; set the repository variable RIZZ_API_URL to your server so ordering & payments work.
+on:
+  push:
+    branches: [main, 'claude/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npm run build
+        env:
+          VITE_STATIC: '1'
+          VITE_API_URL: ${{ vars.RIZZ_API_URL }}
+      - name: Single-page app fallback (e.g. /admin)
+        run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

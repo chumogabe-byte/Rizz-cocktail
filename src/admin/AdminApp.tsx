@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Capacitor } from '@capacitor/core';
 import { actions, connect, useStore } from '../store/store';
-import { getServerUrl, setServerUrl } from '../api';
+import { getServerUrl, isDetachedClient, setServerUrl } from '../api';
 import { useBar } from '../config';
 import { initFx } from '../fx';
 import { Staff } from '../screens/Staff';
@@ -33,7 +32,7 @@ export default function AdminApp({ adminOnly = false }: { adminOnly?: boolean })
 function AdminLogin({ adminOnly }: { adminOnly: boolean }) {
   const bar = useBar();
   const online = useStore((s) => s.online);
-  const native = Capacitor.isNativePlatform();
+  const native = isDetachedClient();
   const [server, setServer] = useState(getServerUrl());
   const [pin, setPin] = useState('');
   const [err, setErr] = useState('');

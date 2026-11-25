@@ -22,9 +22,19 @@ export function setServerUrl(url: string) {
 
 export class ApiError extends Error {}
 
+/**
+ * True when this copy of the app is not served by the bar's own server: the installed Android/iOS app,
+ * or the static web copy on GitHub Pages (built with VITE_STATIC=1). Such copies need a server address
+ * (built in via VITE_API_URL, or entered in Profile → Server) for live features.
+ */
+export function isDetachedClient() {
+  const native = typeof window !== 'undefined' && !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+  return native || import.meta.env.VITE_STATIC === '1';
+}
+
 export async function api<T>(path: string, opts: { method?: string; body?: unknown; token?: string | null } = {}): Promise<T> {
   // Installed app that was never given the bar's server address: say so plainly
-  if (!getServerUrl() && typeof window !== 'undefined' && (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.())
+  if (!getServerUrl() && isDetachedClient())
     throw new ApiError("This app isn't connected to the bar yet. Add the server address in Profile → Server to order and pay.");
   let res: Response;
   try {

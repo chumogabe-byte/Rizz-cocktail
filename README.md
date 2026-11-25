@@ -181,6 +181,15 @@ docker run -p 3001:3001 -e STAFF_PIN=4821 -v rizz-data:/data rizz
 
 This works on any Docker host, such as Railway, Fly.io, Render or a VPS. Mount a **persistent volume** at `/data`, or orders will be lost on redeploy.
 
+## iPhone: install from the web (no App Store needed)
+
+Every push publishes the web app to **GitHub Pages**: https://chumogabe-byte.github.io/Rizz-cocktail/
+
+On an iPhone, open that link in **Safari**, tap **Share → Add to Home Screen**. Rizz then appears with its icon and opens full-screen like an app. The app shows an "Install Rizz on your iPhone" hint the first time.
+- The full menu, offers and events show straight away.
+- For ordering, bookings, tickets and payments, set the repository variable **`RIZZ_API_URL`** to your server (it must be `https://`). Each guest can also enter it in Profile → Server.
+- Staff and admin: same link plus `admin` (https://chumogabe-byte.github.io/Rizz-cocktail/admin), or tap *Staff & admin login*.
+
 ## iPhone (iOS) app
 
 The `ios/` folder is the native iOS project for the same app (bundle id `com.rizz.cocktailbar`). It includes camera and photo permissions for Moments, light status-bar text, the Rizz icon and splash, and layout that clears the notch and home bar.
