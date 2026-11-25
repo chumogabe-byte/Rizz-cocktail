@@ -13,6 +13,13 @@ const config: CapacitorConfig = {
   webDir: admin ? 'dist-admin' : 'dist',
   backgroundColor: '#0e0b1a',
   android: admin ? { path: 'android-admin' } : undefined,
+  ios: {
+    // the web layout handles the notch & home bar itself (env(safe-area-inset-*))
+    contentInset: 'never',
+    backgroundColor: '#0e0b1a',
+    // one iOS app: guests + staff/admin logins
+    path: 'ios',
+  },
   server: {
     // http scheme + cleartext lets the app talk to a server on the bar's Wi-Fi (http://192.168.x.x:3001)
     // as well as a hosted https server.

@@ -5,6 +5,7 @@ import { getServerUrl, setServerUrl } from '../api';
 import { useBar } from '../config';
 import { initFx } from '../fx';
 import { Staff } from '../screens/Staff';
+import { setRouteBackHandler } from '../native';
 
 /**
  * Rizz Admin — the management app (separate from the guest app).
@@ -38,6 +39,12 @@ function AdminLogin({ adminOnly }: { adminOnly: boolean }) {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const needsServer = native && !getServerUrl();
+  // Back on the login screen returns to the guest app (one app, two logins)
+  useEffect(() => {
+    if (adminOnly) return;
+    setRouteBackHandler(() => { actions.setMode('guest'); return true; });
+    return () => setRouteBackHandler(null);
+  }, [adminOnly]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

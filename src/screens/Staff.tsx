@@ -9,6 +9,7 @@ import { MenuPanel } from './StaffMenu';
 import { SettingsPanel, SpacesPanel } from '../admin/AdminContent';
 import { WalletsPanel } from '../admin/AdminWallets';
 import { getServerUrl } from '../api';
+import { setRouteBackHandler } from '../native';
 import type { StaffRole } from '../types';
 import { PayBadge } from '../components/MpesaPay';
 import { EventsPanel } from './StaffEvents';
@@ -61,6 +62,12 @@ export function Staff({ onExit, onPreview }: { onExit: () => void; onPreview?: (
   const allowed = (t: Tab) => NAV.some((g) => g.items.some(([id, , , roles]) => id === t && roles.includes(role)));
   useEffect(() => { if (!allowed(tab)) setTab('orders'); }, [role]); // eslint-disable-line react-hooks/exhaustive-deps
   const [menuOpen, setMenuOpen] = useState(false);
+  // Phone back button on the admin side: return to the first section before offering to exit
+  const homeTab: Tab = role === 'admin' ? 'overview' : 'orders';
+  useEffect(() => {
+    setRouteBackHandler(() => { if (tab !== homeTab) { setTab(homeTab); window.scrollTo(0, 0); return true; } return false; });
+    return () => setRouteBackHandler(null);
+  }, [tab, homeTab]);
   const posts = useStore((s) => s.posts);
   const mpesa = useStore((s) => s.mpesa);
   const [sound, setSound] = useState(true);

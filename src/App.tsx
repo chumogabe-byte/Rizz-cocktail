@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { initFx } from './fx';
+import { setRouteBackHandler } from './native';
 import type { Nav, Route } from './router';
 import { actions, connect, useStore } from './store/store';
 import { Capacitor } from '@capacitor/core';
@@ -66,6 +67,19 @@ export default function App() {
     setStack(r.name === 'home' ? [r] : [{ name: 'home' }, r]);
   };
   const back = useCallback(() => history.back(), []);
+  // Phone back button: previous screen → home tab → (double press) exit
+  useEffect(() => {
+    setRouteBackHandler(() => {
+      if (stack.length > 1) {
+        dir.current = 'pop';
+        setStack((s) => s.slice(0, -1)); // step back one screen
+        return true;
+      }
+      if (route.name !== 'home') { dir.current = 'tab'; setStack([{ name: 'home' }]); return true; }
+      return false;
+    });
+    return () => setRouteBackHandler(null);
+  }, [stack, route.name]);
   const nav: Nav = { go, back };
 
   useEffect(() => { window.scrollTo(0, 0); }, [route]);

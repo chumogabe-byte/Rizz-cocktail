@@ -181,11 +181,33 @@ docker run -p 3001:3001 -e STAFF_PIN=4821 -v rizz-data:/data rizz
 
 This works on any Docker host, such as Railway, Fly.io, Render or a VPS. Mount a **persistent volume** at `/data`, or orders will be lost on redeploy.
 
+## iPhone (iOS) app
+
+The `ios/` folder is the native iOS project for the same app (bundle id `com.rizz.cocktailbar`). It includes camera and photo permissions for Moments, light status-bar text, the Rizz icon and splash, and layout that clears the notch and home bar.
+
+**Apple only lets signed builds onto iPhones.** Unlike an Android APK, you can't send people an app file to install. You need an **Apple Developer account** (US$99/year) and then distribute through **TestFlight** (up to 10,000 testers by link) or the App Store.
+
+**Build on GitHub:** Actions → *Build Android & iOS apps* → **Run workflow** → tick **Build iOS**.
+- With no signing set up, this produces `rizz-ios-simulator` (runs in the iPhone Simulator on a Mac). It confirms the iOS app compiles.
+- **To get an installable build**, add these repository secrets (Settings → Secrets and variables → Actions):
+  - `IOS_TEAM_ID`: your Apple Developer Team ID
+  - `IOS_P12_BASE64` and `IOS_P12_PASSWORD`: an *Apple Distribution* certificate exported as .p12 (base64-encoded)
+  - `IOS_PROFILE_BASE64`: an *App Store* provisioning profile for `com.rizz.cocktailbar` (base64-encoded)
+  - optional, for automatic TestFlight upload: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (an App Store Connect API key)
+
+  The run then also produces `rizz-ios-ipa` and, with the API key, sends it straight to **TestFlight**.
+
+**Build on a Mac yourself:** `npm run build && npx cap sync ios && npx cap open ios`, then in Xcode pick your team and press Run (to a connected iPhone) or Product → Archive (for TestFlight).
+
+**No Apple account yet?** iPhone users can open your server's address in Safari → Share → **Add to Home Screen**. It's the same app, just without the App Store.
+
 ## Android app (APK)
 
 The `android/` folder is a native Android project (Capacitor) that wraps the same app.
 
 **Get the APK:** every push triggers the **Build Android apps** GitHub Action. Open the repo's **Actions** tab, select the latest run, and download **rizz-app-apk**: one app for guests *and* staff/admin. For an admin-only app as well, use **Run workflow** and pick `admin-only` or `both`. Pushing a tag like `v1.0.0` also attaches the APK to a GitHub Release.
+
+**Back button:** the phone's back button closes any open sheet or menu first, then goes back a screen, then to Home. On Home it asks you to press back again to exit. The admin side works the same way.
 
 **Install:** copy `rizz-cocktail-bar.apk` to an Android phone, open it, and allow "install unknown apps". On first launch it asks for the **bar server address**, for example `https://rizz.example.com` or `192.168.1.20:3001` on the bar's Wi-Fi. This can be changed later under Profile → Server.
 

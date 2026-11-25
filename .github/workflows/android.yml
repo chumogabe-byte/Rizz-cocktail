@@ -1,4 +1,4 @@
-name: Build Android apps
+name: Build Android & iOS apps
 
 on:
   push:
@@ -14,6 +14,10 @@ on:
         description: "Optional: publish a GitHub Release with this tag (e.g. v1.0.0) and the APK attached for direct download"
         required: false
         default: ''
+      ios:
+        description: "Also build the iOS app (runs on a Mac runner — uses more GitHub minutes)"
+        type: boolean
+        default: false
       apps:
         description: "What to build: the Rizz app (guest + staff/admin logins), the optional admin-only app, or both"
         type: choice
@@ -113,3 +117,95 @@ jobs:
           files: |
             rizz-cocktail-bar.apk
             rizz-admin.apk
+
+  # ---------- iOS (Mac runner, manual runs with "ios" ticked) ----------
+  ios:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.ios == 'true'
+    runs-on: macos-14
+    env:
+      VITE_API_URL: ${{ github.event.inputs.api_url || vars.RIZZ_API_URL }}
+      # Signing (optional). Add these repository secrets to get an installable / TestFlight build:
+      IOS_P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}            # Apple Distribution certificate (.p12), base64
+      IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+      IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}    # App Store provisioning profile for com.rizz.cocktailbar, base64
+      IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}                    # App Store Connect API key (for TestFlight upload)
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build web app
+        run: npm run build
+      - name: Sync iOS project (installs CocoaPods)
+        run: npx cap sync ios
+
+      - name: Build for the iOS Simulator (no signing needed)
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tail -n 25
+          cd build/Build/Products/Release-iphonesimulator && zip -qry "$GITHUB_WORKSPACE/rizz-ios-simulator.zip" App.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rizz-ios-simulator
+          path: rizz-ios-simulator.zip
+
+      - name: Install signing certificate & profile
+        if: env.IOS_P12_BASE64 != '' && env.IOS_PROFILE_BASE64 != '' && env.IOS_TEAM_ID != ''
+        run: |
+          KEYCHAIN=$RUNNER_TEMP/rizz.keychain-db; KPASS=$(uuidgen)
+          echo "$IOS_P12_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security create-keychain -p "$KPASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KPASS" "$KEYCHAIN"
+          security import $RUNNER_TEMP/cert.p12 -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KPASS" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$IOS_PROFILE_BASE64" | base64 --decode > $RUNNER_TEMP/profile.mobileprovision
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i $RUNNER_TEMP/profile.mobileprovision)")
+          NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' /dev/stdin <<< "$(security cms -D -i $RUNNER_TEMP/profile.mobileprovision)")
+          cp $RUNNER_TEMP/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          echo "PROFILE_NAME=$NAME" >> $GITHUB_ENV
+
+      - name: Archive & export signed IPA
+        if: env.PROFILE_NAME != ''
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos \
+            -archivePath $RUNNER_TEMP/Rizz.xcarchive archive \
+            CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$IOS_TEAM_ID" CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} | tail -n 25
+          cat > $RUNNER_TEMP/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>$IOS_TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key><dict><key>com.rizz.cocktailbar</key><string>$PROFILE_NAME</string></dict>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath $RUNNER_TEMP/Rizz.xcarchive -exportPath $RUNNER_TEMP/export -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
+          cp $RUNNER_TEMP/export/*.ipa "$GITHUB_WORKSPACE/rizz-ios.ipa"
+      - name: Upload signed IPA
+        if: env.PROFILE_NAME != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: rizz-ios-ipa
+          path: rizz-ios.ipa
+
+      - name: Send to TestFlight
+        if: env.PROFILE_NAME != '' && env.ASC_KEY_ID != '' && env.ASC_ISSUER_ID != '' && env.ASC_KEY_P8 != ''
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+          xcrun altool --upload-app -f rizz-ios.ipa -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"

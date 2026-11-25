@@ -798,3 +798,23 @@ body.scrolled .topbar-title { letter-spacing: -.01em; }
 .inline-price input { width: 92px; padding: 8px 10px; border-radius: 10px; text-align: right; font-weight: 700; }
 .tile-repeat { position: absolute; left: 10px; top: 62px; z-index: 1; font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 7px; background: rgba(14,11,26,.75); color: var(--lime); }
 .seg button { font-size: 13px; }
+
+/* =====================================================================
+   iPhone safe areas (notch / Dynamic Island / home bar). These are 0 on Android and desktop.
+   ===================================================================== */
+.app { padding-top: env(safe-area-inset-top, 0px); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 70; background: var(--bg); pointer-events: none; }
+.topbar { top: env(safe-area-inset-top, 0px); }
+.offline-bar { top: env(safe-area-inset-top, 0px); }
+.chips-row.sticky { top: calc(64px + env(safe-area-inset-top, 0px)); }
+.toast { top: calc(16px + env(safe-area-inset-top, 0px)); }
+.preview-pill { top: calc(10px + env(safe-area-inset-top, 0px)); }
+.bottom-nav { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); padding-bottom: 0; }
+main.has-nav { padding-bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom, 0px)); }
+.cart-bar { bottom: calc(var(--nav-h) + 22px + env(safe-area-inset-bottom, 0px)); }
+main.has-nav .sticky-cta { bottom: calc(var(--nav-h) + 12px + env(safe-area-inset-bottom, 0px)); }
+.admin-side { padding-top: calc(22px + env(safe-area-inset-top, 0px)); padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); }
+.admin-shell .staff { padding-top: calc(18px + env(safe-area-inset-top, 0px)); }
+.admin-login { padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
+.sheet { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+.welcome-body { padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }

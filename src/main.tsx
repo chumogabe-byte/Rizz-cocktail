@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { useStore } from './store/store';
 import './styles.css';
+import { initNative } from './native';
+
+initNative();
 
 /**
  * One app, two logins:
